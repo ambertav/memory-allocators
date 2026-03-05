@@ -8,7 +8,7 @@
 namespace allocator {
 template <size_t S, BufferType B, FitStrategy F>
 FreeListAllocator<S, B, F>::FreeListAllocator()
-  requires(B == BufferType::HEAP)
+  requires(S > 0 && B == BufferType::HEAP)
     : buffer(static_cast<std::byte*>(::operator new(S))),
       data(buffer),
       capacity(S),
@@ -20,7 +20,7 @@ FreeListAllocator<S, B, F>::FreeListAllocator()
 
 template <size_t S, BufferType B, FitStrategy F>
 FreeListAllocator<S, B, F>::FreeListAllocator()
-  requires(B == BufferType::STACK)
+  requires(S > 0 && B == BufferType::STACK)
     : buffer(std::array<std::byte, S>{}),
       data(buffer.data()),
       capacity(S),
@@ -32,7 +32,7 @@ FreeListAllocator<S, B, F>::FreeListAllocator()
 
 template <size_t S, BufferType B, FitStrategy F>
 FreeListAllocator<S, B, F>::FreeListAllocator(std::span<std::byte> buf)
-  requires(B == BufferType::EXTERNAL)
+  requires(S > 0 && B == BufferType::EXTERNAL)
     : buffer(buf.data()),
       data(buf.data()),
       capacity(buf.size()),

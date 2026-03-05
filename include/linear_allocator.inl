@@ -8,7 +8,7 @@
 namespace allocator {
 template <size_t S, BufferType B>
 LinearAllocator<S, B>::LinearAllocator()
-  requires(B == BufferType::HEAP)
+  requires(S > 0 && B == BufferType::HEAP)
     : buffer(static_cast<std::byte*>(::operator new(S))),
       data(buffer),
       capacity(S),
@@ -17,7 +17,7 @@ LinearAllocator<S, B>::LinearAllocator()
 
 template <size_t S, BufferType B>
 LinearAllocator<S, B>::LinearAllocator()
-  requires(B == BufferType::STACK)
+  requires(S > 0 && B == BufferType::STACK)
     : buffer(std::array<std::byte, S>{}),
       data(buffer.data()),
       capacity(S),
@@ -26,7 +26,7 @@ LinearAllocator<S, B>::LinearAllocator()
 
 template <size_t S, BufferType B>
 LinearAllocator<S, B>::LinearAllocator(std::span<std::byte> buf)
-  requires(B == BufferType::EXTERNAL)
+  requires(S > 0 && B == BufferType::EXTERNAL)
     : buffer(buf.data()),
       data(buf.data()),
       capacity(buf.size()),

@@ -28,11 +28,11 @@ class FreeListAllocator {
  public:
   static constexpr BufferType buffer_type = B;
   explicit FreeListAllocator()
-    requires(B == BufferType::HEAP);
+    requires(S > 0 && B == BufferType::HEAP);
   explicit FreeListAllocator()
-    requires(B == BufferType::STACK);
+    requires(S > 0 && B == BufferType::STACK);
   explicit FreeListAllocator(std::span<std::byte> buf)
-    requires(B == BufferType::EXTERNAL);
+    requires(S > 0 && B == BufferType::EXTERNAL);
   ~FreeListAllocator() noexcept;
 
   FreeListAllocator(const FreeListAllocator&) = delete;

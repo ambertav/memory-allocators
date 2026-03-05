@@ -18,7 +18,7 @@ class FreeListAllocatorTypedTest : public ::testing::Test {
  protected:
   void SetUp() override {
     if constexpr (std::is_same_v<Allocator,
-                                 FreeListAllocator<0, BufferType::EXTERNAL,
+                                 FreeListAllocator<1024, BufferType::EXTERNAL,
                                                    FitStrategy::FIRST>>) {
       buf = std::make_unique<std::byte[]>(buf_size);
       buf_span = std::span(buf.get(), buf_size);
@@ -40,7 +40,7 @@ using AllocatorTypes = ::testing::Types<
     FreeListAllocator<1024>,
     FreeListAllocator<1024, BufferType::HEAP, FitStrategy::BEST>,
     FreeListAllocator<1024, BufferType::STACK>,
-    FreeListAllocator<0, BufferType::EXTERNAL>>;
+    FreeListAllocator<1024, BufferType::EXTERNAL>>;
 
 TYPED_TEST_SUITE(FreeListAllocatorTypedTest, AllocatorTypes);
 

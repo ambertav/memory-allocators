@@ -11,7 +11,7 @@ class LinearAllocatorTypedTest : public ::testing::Test {
  protected:
   void SetUp() override {
     if constexpr (std::is_same_v<Allocator,
-                                 LinearAllocator<0, BufferType::EXTERNAL>>) {
+                                 LinearAllocator<1024, BufferType::EXTERNAL>>) {
       buf = std::make_unique<std::byte[]>(buf_size);
       buf_span = std::span(buf.get(), buf_size);
       alloc = std::make_unique<Allocator>(buf_span);
@@ -31,7 +31,7 @@ class LinearAllocatorTypedTest : public ::testing::Test {
 using AllocatorTypes =
     ::testing::Types<LinearAllocator<1024>,                      // heap
                      LinearAllocator<1024, BufferType::STACK>,   // stack
-                     LinearAllocator<0, BufferType::EXTERNAL>>;  // external
+                     LinearAllocator<1024, BufferType::EXTERNAL>>;  // external
 
 TYPED_TEST_SUITE(LinearAllocatorTypedTest, AllocatorTypes);
 

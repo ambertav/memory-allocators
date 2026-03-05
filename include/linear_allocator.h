@@ -14,11 +14,11 @@ class LinearAllocator {
   static constexpr BufferType buffer_type = B;
 
   explicit LinearAllocator()
-    requires(B == BufferType::HEAP);
+    requires(S > 0 && B == BufferType::HEAP);
   explicit LinearAllocator()
-    requires(B == BufferType::STACK);
+    requires(S > 0 && B == BufferType::STACK);
   explicit LinearAllocator(std::span<std::byte> buf)
-    requires(B == BufferType::EXTERNAL);
+    requires(S > 0 && B == BufferType::EXTERNAL);
   ~LinearAllocator() noexcept;
 
   LinearAllocator(const LinearAllocator&) = delete;

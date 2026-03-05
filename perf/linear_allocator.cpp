@@ -7,7 +7,7 @@ namespace allocator::perf {
 
 using LinearHeap = LinearAllocator<CAPACITY>;
 using LinearStack = LinearAllocator<CAPACITY, BufferType::STACK>;
-using LinearExternal = LinearAllocator<0, BufferType::EXTERNAL>;
+using LinearExternal = LinearAllocator<CAPACITY, BufferType::EXTERNAL>;
 
 //////////////////////////////
 // allocation benchmarks
