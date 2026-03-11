@@ -17,7 +17,7 @@ class LinearAllocator {
     requires(S > 0 && B == BufferType::HEAP);
   explicit LinearAllocator()
     requires(S > 0 && B == BufferType::STACK);
-  explicit LinearAllocator(std::span<std::byte> buf)
+  explicit LinearAllocator(std::span<std::byte, S> buf)
     requires(S > 0 && B == BufferType::EXTERNAL);
   ~LinearAllocator() noexcept;
 
@@ -49,8 +49,8 @@ class LinearAllocator {
  private:
   std::conditional_t<B == BufferType::STACK, std::array<std::byte, S>,
                      std::byte*>
-      buffer;
-  std::byte* data;
+      buffer{};
+  std::byte* data{};
   size_t capacity;
   size_t offset;
   size_t previous_offset;

@@ -31,7 +31,7 @@ class FreeListAllocator {
     requires(S > 0 && B == BufferType::HEAP);
   explicit FreeListAllocator()
     requires(S > 0 && B == BufferType::STACK);
-  explicit FreeListAllocator(std::span<std::byte> buf)
+  explicit FreeListAllocator(std::span<std::byte, S> buf)
     requires(S > 0 && B == BufferType::EXTERNAL);
   ~FreeListAllocator() noexcept;
 
@@ -76,11 +76,11 @@ class FreeListAllocator {
 
   std::conditional_t<B == BufferType::STACK, std::array<std::byte, S>,
                      std::byte*>
-      buffer;
-  std::byte* data;
+      buffer{};
+  std::byte* data{};
   size_t capacity;
   size_t used;
-  Node* head;
+  Node* head{};
 };
 }  // namespace allocator
 
