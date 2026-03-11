@@ -1,11 +1,11 @@
 #pragma once
 
-#include "common.h"
-
 #include <benchmark/benchmark.h>
 
 #include <memory>
 #include <span>
+
+#include "common.h"
 
 namespace allocator::perf {
 inline constexpr size_t CAPACITY{65536};
@@ -20,14 +20,11 @@ struct Obj {
 template <typename Allocator>
 struct Setup {
   std::unique_ptr<Allocator> alloc{};
-  std::unique_ptr<std::byte[]> buf{};
-  std::span<std::byte> buf_span{};
+  std::array<std::byte, CAPACITY> buf{};
 
   Setup() {
     if constexpr (Allocator::buffer_type == BufferType::EXTERNAL) {
-      buf = std::make_unique<std::byte[]>(CAPACITY);
-      buf_span = std::span(buf.get(), CAPACITY);
-      alloc = std::make_unique<Allocator>(buf_span);
+      alloc = std::make_unique<Allocator>(buf);
     } else {
       alloc = std::make_unique<Allocator>();
     }
@@ -36,12 +33,12 @@ struct Setup {
 
 template <typename Allocator>
 inline void BM_Allocation(::benchmark::State& state) {
-    Setup<Allocator> setup{};
-    for (auto _ : state) {
-        std::byte* ptr{setup.alloc->allocate(64, 8)};
-        ::benchmark::DoNotOptimize(ptr);
-    }
-    state.SetItemsProcessed(state.iterations());
+  Setup<Allocator> setup{};
+  for (auto _ : state) {
+    std::byte* ptr{setup.alloc->allocate(64, 8)};
+    ::benchmark::DoNotOptimize(ptr);
+  }
+  state.SetItemsProcessed(state.iterations());
 }
 
 template <typename Allocator>

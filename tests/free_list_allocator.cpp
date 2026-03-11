@@ -20,9 +20,7 @@ class FreeListAllocatorTypedTest : public ::testing::Test {
     if constexpr (std::is_same_v<Allocator,
                                  FreeListAllocator<1024, BufferType::EXTERNAL,
                                                    FitStrategy::FIRST>>) {
-      buf = std::make_unique<std::byte[]>(buf_size);
-      buf_span = std::span(buf.get(), buf_size);
-      alloc = std::make_unique<Allocator>(buf_span);
+      alloc = std::make_unique<Allocator>(buf);
     } else {
       alloc = std::make_unique<Allocator>();
     }
@@ -30,9 +28,9 @@ class FreeListAllocatorTypedTest : public ::testing::Test {
 
   std::unique_ptr<Allocator> alloc{};
 
+  // for buffertype::external allocator
   static constexpr size_t buf_size{1024};
-  std::unique_ptr<std::byte[]> buf{};
-  std::span<std::byte> buf_span{};
+  std::array<std::byte, buf_size> buf{};
 };
 
 // defaults to FitStrategy::FIRST if not specified

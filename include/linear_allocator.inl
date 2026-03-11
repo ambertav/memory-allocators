@@ -25,13 +25,14 @@ LinearAllocator<S, B>::LinearAllocator()
       previous_offset(0) {}
 
 template <size_t S, BufferType B>
-LinearAllocator<S, B>::LinearAllocator(std::span<std::byte> buf)
+LinearAllocator<S, B>::LinearAllocator(std::array<std::byte, S>& buf)
   requires(S > 0 && B == BufferType::EXTERNAL)
-    : buffer(buf.data()),
-      data(buf.data()),
-      capacity(buf.size()),
-      offset(0),
-      previous_offset(0) {}
+    : buffer(buf.data()), offset(0), previous_offset(0) {
+  // ensures buffer pointer is aligned
+  data = reinterpret_cast<std::byte*>(align_forward(
+      reinterpret_cast<size_t>(buf.data()), alignof(std::max_align_t)));
+  capacity = S - (data - buf.data());
+}
 
 template <size_t S, BufferType B>
 LinearAllocator<S, B>::~LinearAllocator() noexcept {

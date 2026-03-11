@@ -2,7 +2,6 @@
 
 #include <array>
 #include <cstddef>
-#include <span>
 #include <type_traits>
 
 #include "common.h"
@@ -17,7 +16,7 @@ class LinearAllocator {
     requires(S > 0 && B == BufferType::HEAP);
   explicit LinearAllocator()
     requires(S > 0 && B == BufferType::STACK);
-  explicit LinearAllocator(std::span<std::byte, S> buf)
+  explicit LinearAllocator(std::array<std::byte, S>& buf)
     requires(S > 0 && B == BufferType::EXTERNAL);
   ~LinearAllocator() noexcept;
 

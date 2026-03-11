@@ -31,7 +31,7 @@ FreeListAllocator<S, B, F>::FreeListAllocator()
 }
 
 template <size_t S, BufferType B, FitStrategy F>
-FreeListAllocator<S, B, F>::FreeListAllocator(std::span<std::byte> buf)
+FreeListAllocator<S, B, F>::FreeListAllocator(std::array<std::byte, S>& buf)
   requires(S > 0 && B == BufferType::EXTERNAL)
     : buffer(buf.data()),
       data(buf.data()),
@@ -206,6 +206,7 @@ T* FreeListAllocator<S, B, F>::emplace(Args&&... args) {
 template <size_t S, BufferType B, FitStrategy F>
 template <typename T>
 void FreeListAllocator<S, B, F>::destroy(T* ptr) noexcept {
+  // asymmetric, does not deallocate (only reset does)
   if (ptr) {
     std::destroy_at(ptr);
   }

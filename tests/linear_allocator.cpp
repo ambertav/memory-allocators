@@ -12,9 +12,7 @@ class LinearAllocatorTypedTest : public ::testing::Test {
   void SetUp() override {
     if constexpr (std::is_same_v<Allocator,
                                  LinearAllocator<1024, BufferType::EXTERNAL>>) {
-      buf = std::make_unique<std::byte[]>(buf_size);
-      buf_span = std::span(buf.get(), buf_size);
-      alloc = std::make_unique<Allocator>(buf_span);
+      alloc = std::make_unique<Allocator>(buf);
     } else {
       alloc = std::make_unique<Allocator>();
     }
@@ -24,13 +22,12 @@ class LinearAllocatorTypedTest : public ::testing::Test {
 
   // for buffertype::external allocator
   static constexpr size_t buf_size{1024};
-  std::unique_ptr<std::byte[]> buf{};
-  std::span<std::byte> buf_span{};
+  std::array<std::byte, buf_size> buf{};
 };
 
 using AllocatorTypes =
-    ::testing::Types<LinearAllocator<1024>,                      // heap
-                     LinearAllocator<1024, BufferType::STACK>,   // stack
+    ::testing::Types<LinearAllocator<1024>,                         // heap
+                     LinearAllocator<1024, BufferType::STACK>,      // stack
                      LinearAllocator<1024, BufferType::EXTERNAL>>;  // external
 
 TYPED_TEST_SUITE(LinearAllocatorTypedTest, AllocatorTypes);
@@ -105,8 +102,7 @@ TYPED_TEST(LinearAllocatorTypedTest, ResizeLastInPlaceShrinks) {
   auto* ptr{this->alloc->allocate(100, 8)};
   ASSERT_NE(ptr, nullptr);
 
-  auto* resized{
-      this->alloc->resize_last(ptr, 50, 8)};  // from 100 to 50 bytes
+  auto* resized{this->alloc->resize_last(ptr, 50, 8)};  // from 100 to 50 bytes
 
   ASSERT_NE(resized, nullptr);
   EXPECT_EQ(resized, ptr);
@@ -123,7 +119,7 @@ TYPED_TEST(LinearAllocatorTypedTest, ResizeLastReturnsNullptrIfTooLarge) {
 TYPED_TEST(LinearAllocatorTypedTest, ResizeLastReturnsNullptrOnOutOfBounds) {
   auto* valid{this->alloc->allocate(100, 8)};
   ASSERT_NE(valid, nullptr);
-  
+
   std::byte* invalid{valid + 10000};
   EXPECT_EQ(this->alloc->resize_last(invalid, 200, 8), nullptr);
 }

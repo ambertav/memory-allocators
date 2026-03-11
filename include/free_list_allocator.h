@@ -31,7 +31,7 @@ class FreeListAllocator {
     requires(S > 0 && B == BufferType::HEAP);
   explicit FreeListAllocator()
     requires(S > 0 && B == BufferType::STACK);
-  explicit FreeListAllocator(std::span<std::byte, S> buf)
+  explicit FreeListAllocator(std::array<std::byte, S>& buf)
     requires(S > 0 && B == BufferType::EXTERNAL);
   ~FreeListAllocator() noexcept;
 
