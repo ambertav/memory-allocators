@@ -13,7 +13,7 @@ namespace allocator {
 
 struct Block {
   Block* next;
-  size_t level;
+  Block* previous;
 };
 
 template <size_t S, BufferType B = BufferType::HEAP>
@@ -60,6 +60,7 @@ class BuddyAllocator {
 
  private:
   Block* get_buddy(Block* block, size_t level) const noexcept;
+  void unlink(Block* block, size_t level) noexcept;
 
   std::conditional_t<B == BufferType::STACK, std::array<std::byte, S>,
                      std::byte*>
@@ -69,8 +70,9 @@ class BuddyAllocator {
   size_t used;
 
   static constexpr size_t max_level{std::bit_width(S / sizeof(Block)) - 1};
-  std::bitset<S / sizeof(Block)> bitmap{};
   std::array<Block*, max_level + 1> free_blocks{};
+  std::bitset<S / sizeof(Block)> bitmap{};
+  std::array<uint8_t, S / sizeof(Block)> levels;
 };
 }  // namespace allocator
 

@@ -12,8 +12,9 @@ BuddyAllocator<S, B>::BuddyAllocator()
       used(0) {
   Block* block{reinterpret_cast<Block*>(data)};
   block->next = nullptr;
-  block->level = max_level;
+  block->previous = nullptr;
   free_blocks[max_level] = block;
+  levels[0] = static_cast<uint8_t>(max_level);
 }
 
 template <size_t S, BufferType B>
@@ -25,8 +26,9 @@ BuddyAllocator<S, B>::BuddyAllocator()
       used(0) {
   Block* block{reinterpret_cast<Block*>(data)};
   block->next = nullptr;
-  block->level = max_level;
+  block->previous = nullptr;
   free_blocks[max_level] = block;
+  levels[0] = static_cast<uint8_t>(max_level);
 }
 
 template <size_t S, BufferType B>
@@ -35,8 +37,9 @@ BuddyAllocator<S, B>::BuddyAllocator(std::array<std::byte, S>& buf)
     : buffer(buf.data()), data(buf.data()), capacity(buf.size()), used(0) {
   Block* block{reinterpret_cast<Block*>(data)};
   block->next = nullptr;
-  block->level = max_level;
+  block->previous = nullptr;
   free_blocks[max_level] = block;
+  levels[0] = static_cast<uint8_t>(max_level);
 }
 
 template <size_t S, BufferType B>
@@ -65,21 +68,29 @@ std::byte* BuddyAllocator<S, B>::allocate(size_t size) noexcept {
 
   Block* block{free_blocks[current]};
   free_blocks[current] = block->next;
+  if (free_blocks[current]) {
+    free_blocks[current]->previous = nullptr;
+  }
 
   while (current > level) {
     --current;
 
     Block* buddy{get_buddy(block, current)};
-    buddy->next = free_blocks[current];
-    buddy->level = current;
-    free_blocks[current] = buddy;
+    size_t buddy_index{(reinterpret_cast<std::byte*>(buddy) - data) / sizeof(Block)};
+    levels[buddy_index] = static_cast<uint8_t>(current); 
 
-    block->level = current;
+    buddy->next = free_blocks[current];
+    buddy->previous = nullptr;
+
+    if (free_blocks[current]) {
+      free_blocks[current]->previous = buddy;
+    }
+    free_blocks[current] = buddy;
   }
 
   size_t index{(reinterpret_cast<std::byte*>(block) - data) / sizeof(Block)};
   bitmap.set(index);
-
+  levels[index] = static_cast<uint8_t>(level);
   used += (size_t{1} << level) * sizeof(Block);
 
   return reinterpret_cast<std::byte*>(block);
@@ -97,35 +108,19 @@ void BuddyAllocator<S, B>::deallocate(std::byte* ptr) noexcept {
   size_t index{(reinterpret_cast<std::byte*>(block) - data) / sizeof(Block)};
   bitmap.reset(index);
 
-  size_t level{block->level};
+  size_t level{levels[index]};
   used -= (size_t{1} << level) * sizeof(Block);
 
-  while (true) {
-    if (level == max_level) {
-      break;
-    }
-
+  while (level < max_level) {
     Block* buddy{get_buddy(block, level)};
     size_t buddy_index{(reinterpret_cast<std::byte*>(buddy) - data) /
                        sizeof(Block)};
 
-    if (bitmap.test(buddy_index) || buddy->level != level ||
-        level == max_level) {
+    if (bitmap.test(buddy_index) || levels[buddy_index] != level) {
       break;
     }
 
-    Block* previous{nullptr};
-    Block* current{free_blocks[level]};
-    while (current != nullptr && current != buddy) {
-      previous = current;
-      current = current->next;
-    }
-
-    if (previous == nullptr) {
-      free_blocks[level] = buddy->next;
-    } else {
-      previous->next = buddy->next;
-    }
+    unlink(buddy, level);
 
     if (block > buddy) {
       block = buddy;
@@ -134,8 +129,12 @@ void BuddyAllocator<S, B>::deallocate(std::byte* ptr) noexcept {
     ++level;
   }
 
-  block->level = level;
   block->next = free_blocks[level];
+  block->previous = nullptr;
+
+  if (free_blocks[level]) {
+    free_blocks[level]->previous = block;
+  }
   free_blocks[level] = block;
 }
 
@@ -146,8 +145,10 @@ void BuddyAllocator<S, B>::reset() noexcept {
 
   Block* block{reinterpret_cast<Block*>(data)};
   block->next = nullptr;
-  block->level = max_level;
+  block->previous = nullptr;
+
   free_blocks[max_level] = block;
+  levels[0] = static_cast<uint8_t>(max_level);
 }
 
 template <size_t S, BufferType B>
@@ -211,6 +212,17 @@ Block* BuddyAllocator<S, B>::get_buddy(Block* block,
   size_t offset{(reinterpret_cast<std::byte*>(block) - data) ^
                 (size_t{1} << level) * sizeof(Block)};
   return reinterpret_cast<Block*>(data + offset);
+}
+
+template <size_t S, BufferType B>
+void BuddyAllocator<S, B>::unlink(Block* block, size_t level) noexcept {
+  if (block->previous) {
+    block->previous->next = block->next;
+  } else {
+    free_blocks[level] = block->next;
+  }
+
+  if (block->next) { block->next->previous = block->previous; }
 }
 
 }  // namespace allocator
