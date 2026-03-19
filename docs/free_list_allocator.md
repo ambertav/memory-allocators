@@ -2,13 +2,17 @@
 
 An allocator that supports allocations and deallocations with automatic coalescing. Free list allocators excel in scenarios requiring variable-size allocations and deallocations.
 
+## Source
+- [Header](../include/free_list_allocator.h)
+- [Implementation](../include/free_list_allocator.inl)
+
 ## Design
 
 Free list allocator manages memory within a contiguous buffer through the maintenance of a linked list of free memory blocks. Each allocation searches for a free block, splits if necessary, then returns a pointer to the user. On deallocation, the memory is freed, and any free memory blocks are coalesced to reduce fragmentation.
 
 Alignment is handled by inserting padding between the free list block header and the user pointer. The padding value is stored in the `sizeof(size_t)` bytes immediately before the returned pointer. This allows `deallocate()` to recover the header efficiently.
 
-The allocator allows for a `BufferType` argument, in which the caller can specify the type of memory (heap, stack, or external). `BufferType::STACK` uses a fixed-size array stored inline within the allocator object. `BufferType::EXTERNAL` signals a contract in which the allocator will allocate but not own or manage the memory's lifetime. When `BufferType` is not specified, the allocator defaults `BufferType::HEAP`, dynamically allocating memory and managing the cleanup in its destructor. Hence, the copy, copy assignment, move, and move assignment operations are deleted per the rule of 5.
+The allocator allows for a `BufferType` argument, in which the caller can specify the type of memory (heap, stack, or external). `BufferType::STACK` uses a fixed-size array stored inline within the allocator object. `BufferType::EXTERNAL` signals a contract in which the allocator will allocate but not own or manage the memory's lifetime. The size of this external buffer must be known at compile time. When `BufferType` is not specified, the allocator defaults `BufferType::HEAP`, dynamically allocating memory and managing the cleanup in its destructor. Hence, the copy, copy assignment, move, and move assignment operations are deleted per the rule of 5.
 
 The free list allocator takes in a `FitStrategy` argument, in which the caller can specify for either a first-fit or best-fit allocation strategy. `FitStrategy::FIRST` selects the first free block large enough to satisify the allocation request, traversing from the head of the linked list, terminating early at the cost of potential fragmentation. `FitStrategy::BEST` traverses the entire list to select the smallest sufficient block, reducing fragmentation at the cost of O(n) allocation. When `FitStrategy` is not specified, the allocator defaults to `FitStrategy::FIRST`.
 
@@ -27,7 +31,7 @@ FreeListAllocator()
 Creates a free list allocator with capacity `S` bytes. Behavior depends on `BufferType`:
 - `BufferType::HEAP`: Allocates `S` bytes on the heap
 - `BufferType::STACK`: Uses a stack-allocated buffer of `S` bytes
-- `BufferType::EXTERNAL`: Requires explicit buffer via `FreeListAllocator(std::span<std::byte>)`
+- `BufferType::EXTERNAL`: Requires explicit buffer via `FreeListAllocator(std::array<std::byte, S>&)`
 
 ### Memory Management
 
@@ -91,7 +95,7 @@ template <typename T>
 void destroy(T* ptr) noexcept
 ```
 
-Calls destructor on object at `ptr` via `std::destroy_at`. Does **not** deallocate memory—only destroys the object. Memory can only be reclaimed on
+Calls destructor on object at `ptr` via `std::destroy_at`. Only destorys the object and does **not** deallocate memory. Memory can only be reclaimed on
 `deallocate<T>(ptr)` or `reset()`.
 
 ## Usage
@@ -120,7 +124,7 @@ stack_alloc.deallocate(buffer);
 
 // External buffer
 std::array<std::byte, 2048> my_buffer{};
-allocator::FreeListAllocator<0, allocator::BufferType::EXTERNAL, allocator::FitStrategy::FIRST> ext_alloc{std::span{my_buffer}};
+allocator::FreeListAllocator<0, allocator::BufferType::EXTERNAL, allocator::FitStrategy::FIRST> ext_alloc{my_buffer};
 
 // Diagnostics
 size_t in_use {heap_alloc.get_used()};
@@ -135,4 +139,4 @@ size_t available {heap_alloc.get_free()};
 
 ## Performance
 
-Run `.bin/perf` for a full overview of performance against standard implementation of `new`.
+Run `.bin/perf` for a full overview of performance across all `BufferType` and `FitStrategy` permutations of the `FreeListAllocator`, against the [`LinearAllocator`](linear_allocator.md), [`BuddyAllocator`](buddy_allocator.md), and the standard implementation of `new`.

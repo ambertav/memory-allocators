@@ -2,13 +2,17 @@
 
 A bump-pointer allocator for sequential memory allocation. Linear allocators excel in scenarios with many small, sequential allocations, where individual deallocation is not necessary.
 
+## Source
+- [Header](../include/linear_allocator.h)
+- [Implementation](../include/linear_allocator.inl)
+
 ## Design
 
 Linear allocator is a fast allocator that allots memory by incrementing a pointer through a contiguous, fixed memory buffer. Each allocation advances the pointer forward, making the process O(1) with minimal overhead.
 
 The implementation holds true to the philosophy of linear allocators: interim memory cannot be deallocated or resized. Further, note that the typed helpers `emplace<T>` and `destroy<T>` are asymmetric. `emplace<T>` allocates, constructs, and returns a pointer to the resource, while `destroy<T>` simply destructs the resource. This is purposeful, as `reset()` remains the only way through which to deallocate memory within the linear allocator. 
 
-The allocator allows for a `BufferType` argument, in which the caller can specify the type of memory (heap, stack, or external). `BufferType::STACK` uses a fixed-size array stored inline within the allocator object. `BufferType::EXTERNAL` signals a contract in which the allocator will allocate but not own or manage the memory's lifetime. When `BufferType` is not specified, the allocator defaults `BufferType::HEAP`, dynamically allocating memory and managing the cleanup in its destructor. Hence, the copy, copy assignment, move, and move assignment operations are deleted per the rule of 5.
+The allocator allows for a `BufferType` argument, in which the caller can specify the type of memory (heap, stack, or external). `BufferType::STACK` uses a fixed-size array stored inline within the allocator object. `BufferType::EXTERNAL` signals a contract in which the allocator will allocate but not own or manage the memory's lifetime. The size of this external buffer must be known at compile time.  When `BufferType` is not specified, the allocator defaults `BufferType::HEAP`, dynamically allocating memory and managing the cleanup in its destructor. Hence, the copy, copy assignment, move, and move assignment operations are deleted per the rule of 5.
 
 
 ## API Reference
@@ -22,7 +26,7 @@ LinearAllocator()
 Creates a linear allocator with capacity `S` bytes. Behavior depends on `BufferType`:
 - `BufferType::HEAP`: Allocates `S` bytes on the heap
 - `BufferType::STACK`: Uses a stack-allocated buffer of `S` bytes
-- `BufferType::EXTERNAL`: Requires explicit buffer via `LinearAllocator(std::span<std::byte>)`
+- `BufferType::EXTERNAL`: Requires explicit buffer via `LinearAllocator(std::array<std::byte, S>&)`
 
 
 ### Memory Management
@@ -65,7 +69,7 @@ template <typename T>
 void destroy(T* ptr) noexcept
 ```
 
-Calls destructor on object at `ptr` via `std::destroy_at`. Does **not** deallocate memory—only destroys the object. Memory can only be reclaimed on `reset()`.
+Calls destructor on object at `ptr` via `std::destroy_at`. Only destroys the object and does **not** deallocate memory. Memory can only be reclaimed on `reset()`.
 
 ## Usage
 ```cpp
@@ -93,7 +97,7 @@ std::byte* buffer {stack_alloc.allocate(128, 16)};  // 128 bytes, 16-byte aligne
 
 // External buffer
 std::array my_buffer{};
-allocator::LinearAllocator<2048, allocator::BufferType::EXTERNAL> ext_alloc{std::span{my_buffer}};
+allocator::LinearAllocator<2048, allocator::BufferType::EXTERNAL> ext_alloc{my_buffer};
 ```
 
 **Note:**
@@ -104,6 +108,5 @@ allocator::LinearAllocator<2048, allocator::BufferType::EXTERNAL> ext_alloc{std:
 
 ## Performance
 
-Run `.bin/perf` for a full overview of performance against standard implementation of `new`.
-
+Run `.bin/perf` for a full overview of performance across all `BufferType` permutations of the `LinearAllocator`, against the [`FreeListAllocator`](free_list_allocator.md), [`BuddyAllocator`](buddy_allocator.md), and the standard implementation of `new`.
 
