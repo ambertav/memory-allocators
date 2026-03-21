@@ -1,2 +1,2 @@
-web/*.wasm linguist-vendored
-web/*.js linguist-vendored
+web/wasm/*.wasm linguist-vendored
+web/wasm/*.js linguist-vendored
