@@ -150,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
       element.style.width = `${(block.size / state.totalBytes) * 100}%`;
 
       const text = document.createElement('span');
-      text.innerHTML = `${block.size} MB`;
+      text.innerHTML = `${block.size} B`;
       text.style.fontSize = `0.9rem`;
       element.appendChild(text);
 
@@ -252,8 +252,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (deallocateButton) {
       deallocateButton.onclick = () => {
-        const selected_option = document.getElementById('deallocate-ptr');
-        const ptr = parseInt(selected_option.value, 10);
+        const selectedOption = document.getElementById('deallocate-ptr');
+        const ptr = parseInt(selectedOption.value, 10);
         if (isNaN(ptr)) {
           console.error('could not parse pointer');
           return;
@@ -280,6 +280,28 @@ document.addEventListener('DOMContentLoaded', () => {
         syncPointerDropdown();
         console.log(`${type}.reset`);
       };
+    }
+  }
+
+  function syncPointerDropdown() {
+    const pointerDropdown = document.getElementById('deallocate-ptr');
+    if (!pointerDropdown) {
+      return;
+    }
+
+    const prev = pointerDropdown.value;
+    pointerDropdown.innerHTML = `
+        <option value="" disabled selected>- select block -</option>
+        ${[...pointers.entries()]
+          .map(
+            ([ptr, size]) =>
+              `<option value="${ptr}">0x${ptr.toString(16)}, (${size} bytes)</option>`,
+          )
+          .join('')};
+    `;
+
+    if (pointers.has(parseInt(prev))) {
+      pointerDropdown.value = prev;
     }
   }
 });
