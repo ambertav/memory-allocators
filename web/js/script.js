@@ -133,7 +133,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       html += `
         <div class="control-row">
             <button id="resize-button">Resize Last</button>
-             <select id="allocate-size">${options}</select>
+             <select id="resize-size">${options}</select>
         </div>
       `;
     }
@@ -192,7 +192,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (resizeButton) {
       resizeButton.onclick = () => {
         const size = parseInt(
-          document.getElementById('allocate-size').value,
+          document.getElementById('resize-size').value,
           10,
         );
         const previous_ptr = [...pointers.keys()].at(-1);

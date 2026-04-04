@@ -1,7 +1,10 @@
 #pragma once
 
+#include <algorithm>
 #include <memory>
+#include <ranges>
 #include <utility>
+#include <vector>
 
 #include "linear_allocator.h"
 
@@ -84,9 +87,10 @@ std::byte* LinearAllocator<S, B>::resize_last(std::byte* previous_memory,
     return nullptr;
   }
 
+  allocations[previous_offset] = new_size;
+
   // update and return same pointer
   offset = new_offset;
-  allocations[previous_aligned] = new_size;
   return previous_memory;
 }
 
