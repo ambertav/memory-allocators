@@ -1,7 +1,10 @@
 #pragma once
 
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
+#include <ranges>
+#include <vector>
 
 #include "free_list_allocator.h"
 
@@ -201,7 +204,7 @@ std::string FreeListAllocator<S, B, F>::get_state() const noexcept {
     return "{\"totalBytes\":" + std::to_string(S) + ",\"blocks\":[" + blocks +
            "],\"metrics\":{\"used\":" + std::to_string(used) +
            ",\"free\":" + std::to_string(S - used) + ",\"fragmentation\":0}}";
-           
+
   } catch (...) {
     return {};
   }

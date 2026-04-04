@@ -1,4 +1,7 @@
+#include <algorithm>
 #include <cassert>
+#include <ranges>
+#include <vector>
 
 #include "buddy_allocator.h"
 
@@ -52,7 +55,8 @@ BuddyAllocator<S, B>::~BuddyAllocator() noexcept {
 template <size_t S, BufferType B>
 std::byte* BuddyAllocator<S, B>::allocate(size_t size) noexcept {
   size_t effective_size{std::bit_ceil(std::max(size, sizeof(Block)))};
-  size_t level{static_cast<size_t>(std::bit_width(effective_size / sizeof(Block)) - 1)};
+  size_t level{
+      static_cast<size_t>(std::bit_width(effective_size / sizeof(Block)) - 1)};
 
   if (level > max_level) {
     return nullptr;
@@ -172,7 +176,8 @@ std::string BuddyAllocator<S, B>::get_state() const noexcept {
     for (size_t i{}; i <= max_level; ++i) {
       Block* block{free_blocks[i]};
       while (block != nullptr) {
-        size_t start{static_cast<size_t>(reinterpret_cast<std::byte*>(block) - data)};
+        size_t start{
+            static_cast<size_t>(reinterpret_cast<std::byte*>(block) - data)};
         size_t size{sizeof(Block) << i};
 
         if (!blocks.empty()) {

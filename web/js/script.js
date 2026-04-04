@@ -1,3 +1,19 @@
+import AllocatorModule from '../wasm/allocator_wasm.js';
+
+let allocators;
+
+async function init() {
+  const Module = await AllocatorModule({
+    locateFile: (path) => `../wasm/${path}`,
+  });
+
+  allocators = {
+    linear: new Module.LinearAllocator(),
+    'free-list': new Module.FreeListAllocator(),
+    buddy: new Module.BuddyAllocator(),
+  };
+}
+
 const config = {
   linear: {
     title: 'Linear Allocator',
@@ -16,106 +32,9 @@ const config = {
 const pointers = new Map();
 const SIZE = 1024;
 
-const dummy_data = {
-  linear: {
-    name: 'Linear Allocator',
-    totalBytes: 1024,
-    offset: 640,
-    blocks: [
-      { id: 'l0', start: 0, size: 256, status: 'used', label: 'alloc #1' },
-      { id: 'l1', start: 256, size: 128, status: 'used', label: 'alloc #2' },
-      { id: 'l2', start: 384, size: 256, status: 'used', label: 'alloc #3' },
-      { id: 'l3', start: 640, size: 384, status: 'free', label: 'free' },
-    ],
-    metrics: {
-      used: 640,
-      free: 384,
-      fragmentation: 0,
-      allocations: 3,
-    },
-  },
+document.addEventListener('DOMContentLoaded', async () => {
+  await init();
 
-  'free-list': {
-    name: 'Free List Allocator',
-    totalBytes: 1024,
-    blocks: [
-      { id: 'f0', start: 0, size: 128, status: 'used', label: 'alloc #1' },
-      {
-        id: 'f1',
-        start: 128,
-        size: 256,
-        status: 'free',
-        label: 'free',
-        nextFree: 'f3',
-      },
-      { id: 'f2', start: 384, size: 192, status: 'used', label: 'alloc #2' },
-      {
-        id: 'f3',
-        start: 576,
-        size: 128,
-        status: 'free',
-        label: 'free',
-        nextFree: null,
-      },
-      { id: 'f4', start: 704, size: 320, status: 'used', label: 'alloc #3' },
-    ],
-    metrics: {
-      used: 640,
-      free: 384,
-      fragmentation: 0.375,
-      allocations: 3,
-      freeListLength: 2,
-    },
-  },
-
-  buddy: {
-    name: 'Buddy Allocator',
-    totalBytes: 1024,
-    blocks: [
-      {
-        id: 'b0',
-        start: 0,
-        size: 128,
-        status: 'used',
-        label: 'alloc #1',
-        order: 0,
-      },
-      {
-        id: 'b1',
-        start: 128,
-        size: 128,
-        status: 'free',
-        label: 'free',
-        order: 0,
-      },
-      {
-        id: 'b2',
-        start: 256,
-        size: 256,
-        status: 'used',
-        label: 'alloc #2',
-        order: 1,
-      },
-      {
-        id: 'b3',
-        start: 512,
-        size: 512,
-        status: 'free',
-        label: 'free',
-        order: 2,
-      },
-    ],
-    metrics: {
-      used: 384,
-      free: 640,
-      fragmentation: 0.125,
-      allocations: 2,
-      orders: { 0: 1, 1: 0, 2: 1 },
-    },
-  },
-};
-
-document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.toggle').forEach((button) => {
     button.addEventListener('click', () => {
       const type = button.dataset.type;
@@ -131,10 +50,11 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   function renderAllocator(type) {
-    const data = dummy_data[type];
+    const state = JSON.parse(allocators[type].getState());
 
-    renderBlocks(type, data);
-    renderMetrics(type, data.metrics);
+    console.log(state);
+    renderBlocks(type, state);
+    renderMetrics(type, state.metrics);
   }
 
   function renderBlocks(type, state) {
@@ -146,7 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
     state.blocks.forEach((block) => {
       const element = document.createElement('div');
       element.className = `block ${block.status}`;
-      element.style.left = `${(block.start / state.totalBytes) * 100}%`;
+      element.style.left = `${(block.offset / state.totalBytes) * 100}%`;
       element.style.width = `${(block.size / state.totalBytes) * 100}%`;
 
       const text = document.createElement('span');
@@ -207,9 +127,13 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
     if (info.controls.includes('resize_last')) {
+      const options = sizes
+        .map((s) => `<option value="${s}">${s} bytes</option>`)
+        .join('');
       html += `
         <div class="control-row">
             <button id="resize-button">Resize Last</button>
+             <select id="allocate-size">${options}</select>
         </div>
       `;
     }
@@ -237,16 +161,15 @@ document.addEventListener('DOMContentLoaded', () => {
           document.getElementById('allocate-size').value,
           10,
         );
-        const ptr = 'returned by module';
-        if (ptr === -1) {
+        const ptr = allocators[type].allocate(size);
+        if (ptr === 0) {
           console.error('allocation failed');
           return;
         }
 
         pointers.set(ptr, size);
         syncPointerDropdown();
-
-        console.log(`${type}.allocate`, { ptr, size });
+        renderAllocator(type);
       };
     }
 
@@ -259,26 +182,38 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
 
-        console.log('call to deallocate');
+        allocators[type].deallocate(ptr);
         pointers.delete(ptr);
         syncPointerDropdown();
-
-        console.log(`${type}.deallocate`, { ptr });
+        renderAllocator(type);
       };
     }
 
     if (resizeButton) {
       resizeButton.onclick = () => {
-        console.log(`${type}.resize_last`);
+        const size = parseInt(
+          document.getElementById('allocate-size').value,
+          10,
+        );
+        const previous_ptr = [...pointers.keys()].at(-1);
+        const new_ptr = allocators[type].resizeLast(previous_ptr, size);
+        if (new_ptr === 0) {
+          console.error('resize allocation failed');
+          return;
+        }
+
+pointers.set(new_ptr, size);
+        syncPointerDropdown();
+        renderAllocator(type);
       };
     }
 
     if (resetButton) {
       resetButton.onclick = () => {
-        console.log('call to reset');
+        allocators[type].reset();
         pointers.clear();
         syncPointerDropdown();
-        console.log(`${type}.reset`);
+        renderAllocator(type);
       };
     }
   }
