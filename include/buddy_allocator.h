@@ -5,6 +5,7 @@
 #include <bitset>
 #include <cstddef>
 #include <span>
+#include <string>
 #include <type_traits>
 
 #include "common.h"
@@ -40,8 +41,10 @@ class BuddyAllocator {
   void deallocate(std::byte* ptr) noexcept;
   void reset() noexcept;
 
-  size_t get_used() noexcept;
-  size_t get_free() noexcept;
+  std::string get_state() const noexcept;
+
+  size_t get_used() const noexcept;
+  size_t get_free() const noexcept;
 
   //////////////////////
   // type-safe helpers
@@ -73,6 +76,9 @@ class BuddyAllocator {
   std::array<Block*, max_level + 1> free_blocks{};
   std::bitset<S / sizeof(Block)> bitmap{};
   std::array<uint8_t, S / sizeof(Block)> levels;
+
+  // for get_state()
+  std::unordered_map<uintptr_t, size_t> allocations;
 };
 }  // namespace allocator
 

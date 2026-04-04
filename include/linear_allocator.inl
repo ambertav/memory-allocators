@@ -55,17 +55,13 @@ std::byte* LinearAllocator<S, B>::allocate(size_t size,
   size_t new_offset{aligned + size};
   if (new_offset > capacity) {
     return nullptr;
-  } else {
-    previous_offset = aligned;
-    offset = new_offset;
-    return (data + aligned);
   }
-}
 
-template <size_t S, BufferType B>
-void LinearAllocator<S, B>::reset() noexcept {
-  previous_offset = 0;
-  offset = 0;
+  previous_offset = aligned;
+  offset = new_offset;
+
+  allocations[aligned] = size;
+  return (data + aligned);
 }
 
 template <size_t S, BufferType B>
@@ -90,7 +86,50 @@ std::byte* LinearAllocator<S, B>::resize_last(std::byte* previous_memory,
 
   // update and return same pointer
   offset = new_offset;
+  allocations[previous_aligned] = new_size;
   return previous_memory;
+}
+
+template <size_t S, BufferType B>
+void LinearAllocator<S, B>::reset() noexcept {
+  previous_offset = 0;
+  offset = 0;
+  allocations.clear();
+}
+
+template <size_t S, BufferType B>
+std::string LinearAllocator<S, B>::get_state() const noexcept {
+  try {
+    std::vector<std::pair<uintptr_t, size_t>> pointers(allocations.begin(),
+                                                       allocations.end());
+    std::ranges::sort(pointers);
+
+    std::string blocks{};
+    for (const auto& [start, size] : pointers) {
+      if (!blocks.empty()) {
+        blocks += ",";
+      }
+      blocks += "{\"ptr\":" + std::to_string(start) +
+                ",\"offset\":" + std::to_string(start) +
+                ",\"size\":" + std::to_string(size) + ",\"status\":\"used\"}";
+    }
+
+    if (offset < S) {
+      if (!blocks.empty()) {
+        blocks += ",";
+      }
+      blocks += "{\"ptr\":null,\"offset\":" + std::to_string(offset) +
+                ",\"size\":" + std::to_string(S - offset) +
+                ",\"status\":\"free\"}";
+    }
+
+    return "{\"totalBytes\":" + std::to_string(S) + ",\"blocks\":[" + blocks +
+           "],\"metrics\":{\"used\":" + std::to_string(offset) +
+           ",\"free\":" + std::to_string(S - offset) + ",\"fragmentation\":0}}";
+
+  } catch (...) {
+    return {};
+  }
 }
 
 //////////////////////

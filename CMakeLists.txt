@@ -43,7 +43,7 @@ if(EMSCRIPTEN)
     target_link_libraries(allocator_wasm PRIVATE allocators)
     set_target_properties(allocator_wasm PROPERTIES
         SUFFIX ".js"
-        LINK_FLAGS "-lembind -s MODULARIZE=1 -s EXPORT_NAME='AllocatorModule'"
+        LINK_FLAGS "-lembind -s MODULARIZE=1 -s EXPORT_NAME='AllocatorModule' -s EXPORT_ES6=1"
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/web/wasm
     )
 endif()

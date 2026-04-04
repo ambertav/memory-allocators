@@ -81,6 +81,11 @@ std::byte* FreeListAllocator<S, B, F>::allocate(size_t size,
   // adds padding pointer right before user data
   *reinterpret_cast<size_t*>(aligned - sizeof(size_t)) = placement.padding;
 
+  uintptr_t ptr{
+      static_cast<uintptr_t>(aligned - reinterpret_cast<uintptr_t>(data))};
+  size_t offset{static_cast<size_t>(
+      reinterpret_cast<std::byte*>(placement.current) - data)};
+  allocations[ptr] = {offset, placement.required};
   return reinterpret_cast<std::byte*>(aligned);
 }
 
@@ -139,6 +144,7 @@ void FreeListAllocator<S, B, F>::deallocate(std::byte* ptr) noexcept {
     handle_links(previous, node);
   }
 
+  allocations.erase(static_cast<uintptr_t>(ptr - data));
   used -= block_size;
 }
 
@@ -154,15 +160,60 @@ void FreeListAllocator<S, B, F>::reset() noexcept {
 
   head->size = S - sizeof(Node);
   head->next = nullptr;
+
+  allocations.clear();
 }
 
 template <size_t S, BufferType B, FitStrategy F>
-size_t FreeListAllocator<S, B, F>::get_used() noexcept {
+std::string FreeListAllocator<S, B, F>::get_state() const noexcept {
+  try {
+    std::vector<std::pair<uintptr_t, std::pair<size_t, size_t>>> pointers(
+        allocations.begin(), allocations.end());
+    std::ranges::sort(pointers);
+
+    std::string blocks{};
+    for (const auto& [ptr, info] : pointers) {
+      const auto& [start, size] = info;
+      if (!blocks.empty()) {
+        blocks += ",";
+      }
+
+      blocks += "{\"ptr\":" + std::to_string(ptr) +
+                ",\"offset\":" + std::to_string(start) +
+                ",\"size\":" + std::to_string(size) + ",\"status\":\"used\"}";
+    }
+
+    Node* node{head};
+    while (node != nullptr) {
+      size_t start{
+          static_cast<size_t>(reinterpret_cast<std::byte*>(node) - data)};
+
+      if (!blocks.empty()) {
+        blocks += ",";
+      }
+      blocks += "{\"ptr\":null,\"offset\":" + std::to_string(start) +
+                ",\"size\":" + std::to_string(node->size) +
+                ",\"status\":\"free\"}";
+
+      node = node->next;
+    }
+
+    return "{\"totalBytes\":" + std::to_string(S) + ",\"blocks\":[" + blocks +
+           "],\"metrics\":{\"used\":" + std::to_string(used) +
+           ",\"free\":" + std::to_string(S - used) + ",\"fragmentation\":0}}";
+           
+  } catch (...) {
+    return {};
+  }
+}
+
+template <size_t S, BufferType B, FitStrategy F>
+size_t FreeListAllocator<S, B, F>::get_used() const noexcept {
   return used;
 }
 
 template <size_t S, BufferType B, FitStrategy F>
-size_t FreeListAllocator<S, B, F>::get_free() noexcept {
+size_t FreeListAllocator<S, B, F>::get_free() const noexcept {
   return capacity - used;
 }
 

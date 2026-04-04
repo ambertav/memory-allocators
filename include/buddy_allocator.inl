@@ -52,7 +52,7 @@ BuddyAllocator<S, B>::~BuddyAllocator() noexcept {
 template <size_t S, BufferType B>
 std::byte* BuddyAllocator<S, B>::allocate(size_t size) noexcept {
   size_t effective_size{std::bit_ceil(std::max(size, sizeof(Block)))};
-  size_t level{std::bit_width(effective_size / sizeof(Block)) - 1};
+  size_t level{static_cast<size_t>(std::bit_width(effective_size / sizeof(Block)) - 1)};
 
   if (level > max_level) {
     return nullptr;
@@ -76,8 +76,9 @@ std::byte* BuddyAllocator<S, B>::allocate(size_t size) noexcept {
     --current;
 
     Block* buddy{get_buddy(block, current)};
-    size_t buddy_index{(reinterpret_cast<std::byte*>(buddy) - data) / sizeof(Block)};
-    levels[buddy_index] = static_cast<uint8_t>(current); 
+    size_t buddy_index{(reinterpret_cast<std::byte*>(buddy) - data) /
+                       sizeof(Block)};
+    levels[buddy_index] = static_cast<uint8_t>(current);
 
     buddy->next = free_blocks[current];
     buddy->previous = nullptr;
@@ -152,12 +153,55 @@ void BuddyAllocator<S, B>::reset() noexcept {
 }
 
 template <size_t S, BufferType B>
-size_t BuddyAllocator<S, B>::get_used() noexcept {
+std::string BuddyAllocator<S, B>::get_state() const noexcept {
+  try {
+    std::vector<std::pair<uintptr_t, size_t>> pointers(allocations.begin(),
+                                                       allocations.end());
+    std::ranges::sort(pointers);
+
+    std::string blocks{};
+    for (const auto& [start, size] : pointers) {
+      if (!blocks.empty()) {
+        blocks += ",";
+      }
+      blocks += "{\"ptr\":" + std::to_string(start) +
+                ",\"offset\":" + std::to_string(start) +
+                ",\"size\":" + std::to_string(size) + ",\"status\":\"used\"}";
+    }
+
+    for (size_t i{}; i <= max_level; ++i) {
+      Block* block{free_blocks[i]};
+      while (block != nullptr) {
+        size_t start{static_cast<size_t>(reinterpret_cast<std::byte*>(block) - data)};
+        size_t size{sizeof(Block) << i};
+
+        if (!blocks.empty()) {
+          blocks += ",";
+        }
+
+        blocks += "{\"ptr\":" + std::to_string(start) +
+                  ",\"offset\":" + std::to_string(start) +
+                  ",\"size\":" + std::to_string(size) + ",\"status\":\"free\"}";
+        block = block->next;
+      }
+    }
+
+    return "{\"totalBytes\":" + std::to_string(S) + ",\"blocks\":[" + blocks +
+           "],\"metrics\":{\"used\":" + std::to_string(used) +
+           ",\"free\":" + std::to_string(S - used) + ",\"fragmentation\":0}}";
+
+  } catch (...) {
+    return {};
+  }
+}
+
+template <size_t S, BufferType B>
+size_t BuddyAllocator<S, B>::get_used() const noexcept {
   return used;
 }
 
 template <size_t S, BufferType B>
-size_t BuddyAllocator<S, B>::get_free() noexcept {
+size_t BuddyAllocator<S, B>::get_free() const noexcept {
   return capacity - used;
 }
 
@@ -222,7 +266,9 @@ void BuddyAllocator<S, B>::unlink(Block* block, size_t level) noexcept {
     free_blocks[level] = block->next;
   }
 
-  if (block->next) { block->next->previous = block->previous; }
+  if (block->next) {
+    block->next->previous = block->previous;
+  }
 }
 
 }  // namespace allocator

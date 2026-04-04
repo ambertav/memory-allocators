@@ -4,7 +4,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <span>
+#include <string>
 #include <type_traits>
+#include <unordered_map>
 
 #include "common.h"
 
@@ -45,8 +47,10 @@ class FreeListAllocator {
   void deallocate(std::byte* ptr) noexcept;
   void reset() noexcept;
 
-  size_t get_used() noexcept;
-  size_t get_free() noexcept;
+  std::string get_state() const noexcept;
+
+  size_t get_used() const noexcept;
+  size_t get_free() const noexcept;
 
   //////////////////////
   // type-safe helpers
@@ -81,6 +85,11 @@ class FreeListAllocator {
   size_t capacity;
   size_t used;
   Node* head;
+
+  // for get_state()
+  std::unordered_map<uintptr_t,
+                     std::pair<size_t /* offset */, size_t /* size */>>
+      allocations;
 };
 }  // namespace allocator
 

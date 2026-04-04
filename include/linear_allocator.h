@@ -2,7 +2,9 @@
 
 #include <array>
 #include <cstddef>
+#include <string>
 #include <type_traits>
+#include <unordered_map>
 
 #include "common.h"
 
@@ -27,11 +29,14 @@ class LinearAllocator {
   LinearAllocator& operator=(LinearAllocator&&) = delete;
 
   [[nodiscard]] std::byte* allocate(size_t size, size_t alignment) noexcept;
-  void reset() noexcept;
 
   [[nodiscard]] std::byte* resize_last(std::byte* previous_memory,
                                        size_t new_size,
                                        size_t alignment) noexcept;
+
+  void reset() noexcept;
+
+  std::string get_state() const noexcept;
 
   //////////////////////
   // type-safe helpers
@@ -53,6 +58,9 @@ class LinearAllocator {
   size_t capacity;
   size_t offset;
   size_t previous_offset;
+
+  // for get_state()
+  std::unordered_map<uintptr_t, size_t> allocations;
 };
 }  // namespace allocator
 
