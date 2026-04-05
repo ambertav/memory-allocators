@@ -23,10 +23,10 @@
       <section id="design">
         <h3>Design</h3>
         <p>
-          Buddy allocator manages memory within a contiguous buffer by
-          maintaining a set of free lists, one per level, where each level
-          corresponds to a power-of-two block size. The minimum block size is
-          dependent on <code>sizeof(Block)</code>, which stores the doubly
+          The <code>BuddyAllocator</code> manages memory within a contiguous
+          buffer by maintaining a set of free lists, one per level, where each
+          level corresponds to a power-of-two block size. The minimum block size
+          is dependent on <code>sizeof(Block)</code>, which stores the doubly
           linked list pointers used to maintain the free lists.
         </p>
         <p>
@@ -60,11 +60,13 @@
 
       <section id="limitations">
         <h3>Limitations</h3>
-        All allocations are rounded up to the nearest power of two, which may
-        cause internal fragmentation for non-power-of-two allocation sizes. The
-        minimum allocation size is <code>sizeof(Block)</code>, as the block
-        metadata is stored within the free memory itself. The total capacity
-        <code>S</code> must be a power of two greater than zero.
+        <p>
+          All allocations are rounded up to the nearest power-of-two, which may
+          cause internal fragmentation for non power-of-two allocation sizes.
+          The minimum allocation size is <code>sizeof(Block)</code>, as the
+          block metadata is stored within the free memory itself. The total
+          capacity <code>S</code> must be a power-of-two greater than zero.
+        </p>
       </section>
 
       <section id="api">
@@ -98,7 +100,7 @@ BuddyAllocator()</code></pre>
           <pre><code>[[nodiscard]] std::byte* allocate(size_t size, size_t alignment) noexcept</code></pre>
           <p>
             Allocates a block of at least <code>size</code> bytes, rounded up to
-            the nearest power of two. Searches the free lists and splits larger
+            the nearest power-of-two. Searches the free lists and splits larger
             blocks as needed. Returns a pointer to allocated memory, or
             <code>nullptr</code> on failure (insufficient space).
           </p>
@@ -126,9 +128,7 @@ BuddyAllocator()</code></pre>
         <h4>Metrics</h4>
         <div class="method">
           <pre><code>size_t get_used() const noexcept</code></pre>
-          <p>
-            Returns the number of bytes currently allocated.
-          </p>
+          <p>Returns the number of bytes currently allocated.</p>
         </div>
         <div class="method">
           <pre><code>size_t get_free() const noexcept</code></pre>
@@ -141,17 +141,18 @@ BuddyAllocator()</code></pre>
 [[nodiscard]] T* allocate(size_t count = 1) noexcept</code></pre>
           <p>
             Typed allocation for <code>count</code> objects of type
-            <code>T</code>. Aligns to <code>count * sizeof(T)</code>, rounded up to the nearest power of two. Returns a typed
-            pointer or <code>nullptr</code> on failure.
+            <code>T</code>. Aligns to <code>count * sizeof(T)</code>, rounded up
+            to the nearest power of two. Returns a typed pointer or
+            <code>nullptr</code> on failure.
           </p>
         </div>
         <div class="method">
           <pre><code>template &lt;typename T&gt; 
             void deallocate(T* ptr) noexcept</code></pre>
           <p>
-            Typed deallocation. Reclaims the <code>ptr</code>
-            without calling a destructor. For non-trivial types, consider
-            calling <code>destroy&lt;T&gt;()</code> before deallocation.
+            Typed deallocation. Reclaims the <code>ptr</code> without calling a
+            destructor. For non-trivial types, consider calling
+            <code>destroy&lt;T&gt;()</code> before deallocation.
           </p>
         </div>
         <div class="method">

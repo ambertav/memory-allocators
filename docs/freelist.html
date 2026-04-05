@@ -22,9 +22,9 @@
       <section id="design">
         <h3>Design</h3>
         <p>
-          Free list allocator manages memory within a contiguous buffer through
-          the maintenance of a linked list of free memory blocks. Each
-          allocation searches for a free block, splits if necessary, then
+          The <code>FreeListAllocator</code> manages memory within a contiguous
+          buffer through the maintenance of a linked list of free memory blocks.
+          Each allocation searches for a free block, splits if necessary, then
           returns a pointer to the user. On deallocation, the memory is freed,
           and any free memory blocks are coalesced to reduce fragmentation.
         </p>
@@ -65,8 +65,10 @@
 
       <section id="limitations">
         <h3>Limitations</h3>
-        Each allocation carries a minimum <code>sizeof(size_t)</code> bytes for
-        alignment bookkeeping.
+        <p>
+          Each allocation carries a minimum <code>sizeof(size_t)</code> bytes
+          for alignment bookkeeping.
+        </p>
       </section>
 
       <section id="api">
@@ -105,7 +107,7 @@ FreeListAllocator()</code></pre>
             Searches the free list using the configured
             <code>FitStrategy</code>, and splits the found block if applicable.
             Returns a pointer to allocated memory, or <code>nullptr</code>
-            on failre (insuffcient space or invalid alignment).
+            on failure (insuffcient space or invalid alignment).
           </p>
         </div>
         <div class="method">
