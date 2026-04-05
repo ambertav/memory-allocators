@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="js/components.js" defer></script>
+    <title>Memory Allocators | About</title>
+  </head>
+  <body>
+    <site-nav></site-nav>
+    <main>
+      <header>
+        <h2>Memory Allocators</h2>
+        <p>Custom memory allocators developed in C++.</p>
+        <p>
+          This project was a deep dive into memory allocation strategies and
+          their implementation tradeoffs in C++. The visualizer grew out of a
+          desire to make those tradeoffs visible, and served as an opportunity
+          to explore running native C++ on the web via Emscripten and WASM.
+        </p>
+
+        <a target="_blank" href="https://github.com/ambertav/memory-allocators"><strong>Source Code</strong></a>
+      </header>
+
+      <section id="dependencies">
+        <h3>Dependencies</h3>
+        <ul class="docs-list">
+            <li>C++20</li>
+            <li>CMake</li>
+            <li>GoogleTest</li>
+            <li>Google Benchmark</li>
+            <li>Emscripten</li>
+            <li>WebAssembly (WASM)</li>
+        </ul>
+      </section>
+
+      <section id="design">
+        <h3>Design</h3>
+
+        <p>
+            The library explores the implementation and tradeoffs between speed,
+            flexibility, and fragmentation for three different allocators: linear,
+            free list, and buddy. For in-depth technical details, usage examples and
+            API references, please see the following documentation: 
+            <ul class="docs-list">
+                <li><a target="_blank" href="/docs/linear.html">Linear Allocator</a></li>
+                <li><a target="_blank" href="/docs/freelist.html">Free List Allocator</a></li>
+                <li><a target="_blank" href="/docs/buddy.html">Buddy Allocator</a></li>
+            </ul>
+        </p>
+
+        <p>
+          The <code>LinearAllocator</code> advances a pointer through a buffer on each
+          allocation and reclaims memory with a batch reset. Each operation is
+          completed in O(1) time. There is no per-object deallocation, which is
+          ideal for frame-scoped allocations where objects share a lifetime.
+        </p>
+
+        <p>
+          The <code>FreeListAllocator</code> sacrifices speed for flexibility by
+          maintaining a linked list of free blocks. Deallocated memory is
+          returned to the list and coalesced with adjacent free blocks in an
+          attempt to minimize fragmentation. The <code>FreeListAllocator</code> supports
+          both a first-fit and best-fit placement strategy on allocation,
+          offering more control over the tradeoff betwen speed and flexibility.
+        </p>
+
+        <p>
+          The <code>BuddyAllocator</code> manages memory in power-of-two sized blocks
+          across levels of free lists, internally creating a binary tree
+          structure within the fixed buffer. Blocks are paired as "buddy"
+          blocks, allowing for recursive splitting and coalescing, minimizing
+          external fragmentation and enabling O(log n) allocation and
+          deallocation operations.
+        </p>
+
+        <p>
+          All three allocators share a common <code>BufferType</code> interface, allowing
+          the caller to specify heap, stack, or externally-owned memory. The
+          copy, move, and assignment operations are deleted where required by ownership
+          semantics.
+        </p>
+
+        <h3>Visualizer</h3>
+        <p>
+          The visualizer webpage is intended to provide a quick educational
+          overview and demonstration of the nuances and functionality of each
+          allocator implemented in the C++ library. The visualizer is built in
+          standard HTML, CSS, and vanilla JavaScript, which communicates with
+          the native C++ via Emscripten bindings and WASM. Thus, each
+          control event performed by the user to alter the state of the
+          allocator directly invokes the corresponding method in the C++
+          library. Each allocator contains a <code>get_state()</code> method, which returns
+          a JSON formatted <code>std::string</code> that encodes the state of the allocator
+          for use in debugging and/or communicating between the C++ library and
+          the JavaScript.
+        </p>
+      </section>
+
+      <section id="future">
+        <h4>Future Updates</h4>
+                    <ul class="docs-list">
+                        <li>Calculate and report internal and external fragmentation metrics</li>
+                        <li>Implement a pool allocator</li>
+                        <li>Implement a TLS allocator</li>
+                    </ul>
+        <h4>Acknowledgements</h4>
+        Implementation inspired by <a target="_blank" href="https://www.gingerbill.org/series/memory-allocation-strategies/"><strong>Ginger Bill's Memory Allocation Strategies</strong></a>
+      </section>
+    </main>
+    <site-footer></site-footer>
+  </body>
+</html>

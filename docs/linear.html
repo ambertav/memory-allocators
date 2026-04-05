@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="../styles.css" />
+    <script src="../js/components.js" defer></script>
+    <title>Memory Allocators | Linear Allocator</title>
+  </head>
+  <body>
+    <site-nav></site-nav>
+    <main>
+      <header>
+        <h2>Linear Allocator</h2>
+        <p>
+          A bump-pointer allocator for sequential memory allocation. Linear
+          allocators excel in scenarios with many small, sequential allocations,
+          where individual deallocation is not necessary.
+        </p>
+      </header>
+
+      <section id="design">
+        <h3>Design</h3>
+        <p>
+          Linear allocator is a fast allocator that allots memory by
+          incrementing a pointer through a contiguous, fixed memory buffer. Each
+          allocation advances the pointer forward, making the process O(1) with
+          minimal overhead.
+        </p>
+        <p>
+          The implementation holds true to the philosophy of linear allocators:
+          interim memory cannot be deallocated or resized. Further, note that
+          the typed helpers <code>emplace&lt;T&gt;()</code> and
+          <code>destroy&lt;T&gt;()</code> are asymmetric.
+          <code>emplace&lt;T&gt;()</code> allocates, constructs, and returns a
+          pointer to the resource, while <code>destroy&lt;T&gt;()</code> simply
+          destructs the resource. This is purposeful, as
+          <code>reset()</code> remains the only way through which to deallocate
+          memory within the linear allocator.
+        </p>
+        <p>
+          The allocator allows for a <code>BufferType</code> argument, in which
+          the caller can specify the type of memory (heap, stack, or external).
+          <code>BufferType::STACK</code> uses a fixed-size array stored inline
+          within the allocator object. <code>BufferType::EXTERNAL</code> signals
+          a contract in which the allocator will allocate but not own or manage
+          the memory's lifetime. The size of this external buffer must be known
+          at compile time. When <code>BufferType</code> is not specified, the
+          allocator defaults to <code>BufferType::HEAP</code>, dynamically
+          allocating memory and managing the cleanup in its destructor. Hence,
+          the copy, copy assignment, move, and move assignment operations are
+          deleted per the rule of 5.
+        </p>
+      </section>
+
+      <section id="api">
+        <h3>API Reference</h3>
+        <h4>Constructor</h4>
+        <div class="method">
+          <pre><code>template &lt;size_t S, BufferType B&gt;
+LinearAllocator()</code></pre>
+          <p>
+            Creates a linear allocator with capacity <code>S</code> bytes.
+            Behavior depends on <code>BufferType</code>:
+          </p>
+          <ul>
+            <li>
+              <code>BufferType::HEAP</code> : allocates <code>S</code> bytes on
+              the heap
+            </li>
+            <li>
+              <code>BufferType::STACK</code> : uses a stack-allocated buffer of
+              <code>S</code> bytes
+            </li>
+            <li>
+              <code>BufferType::EXTERNAL</code> : requires explicit buffer via
+              <code>LinearAllocator(std::array&lt;std::byte, S&gt;&amp;)</code>
+            </li>
+          </ul>
+        </div>
+
+        <h4>Memory Management</h4>
+        <div class="method">
+          <pre><code>[[nodiscard]] std::byte* allocate(size_t size, size_t alignment) noexcept</code></pre>
+          <p>
+            Allocates <code>size</code> bytes aligned to
+            <code>alignment</code> boundary. Returns a pointer to allocated
+            memory, or <code>nullptr</code> on failure (insufficient space,
+            invalid alignment, or overflow).
+          </p>
+        </div>
+        <div class="method">
+          <pre><code>[[nodiscard]] std::byte* resize_last(std::byte* previous_memory,
+                                     size_t new_size, size_t alignment) noexcept</code></pre>
+          <p>
+            Resizes the most recent allocation, if possible. Returns the same
+            pointer if successful, <code>nullptr</code> if the pointer doesn't
+            match the last allocation or if insufficient space remains. Only
+            works on the most recent allocation made.
+          </p>
+        </div>
+        <div class="method">
+          <pre><code>void reset() noexcept</code></pre>
+          <p>
+            Resets the allocator, reclaiming all allocated memory for reuse.
+            Invalidates all previously allocated pointers without calling
+            destructors. For non-trivial types, consider calling
+            <code>destroy&lt;T&gt;()</code> before resetting.
+          </p>
+        </div>
+
+        <h4>Typed Helpers</h4>
+        <div class="method">
+          <pre><code>template &lt;typename T&gt;
+[[nodiscard]] T* allocate(size_t count = 1) noexcept</code></pre>
+          <p>
+            Typed allocation for <code>count</code> objects of type
+            <code>T</code>. Uses <code>alignof(T)</code> and
+            <code>sizeof(T)</code> to automatically align. Returns a typed
+            pointer or <code>nullptr</code> on failure.
+          </p>
+        </div>
+        <div class="method">
+          <pre><code>template &lt;typename T, typename... Args&gt;
+[[nodiscard]] T* emplace(Args&amp;&amp;... args)</code></pre>
+          <p>
+            Allocates space for type <code>T</code> and constructs an object
+            in-place using constructor arguments <code>args</code> and
+            <code>std::construct_at()</code>. Returns a pointer to the
+            constructed object, or <code>nullptr</code> if allocation fails.
+          </p>
+        </div>
+        <div class="method">
+          <pre><code>template &lt;typename T&gt;
+void destroy(T* ptr) noexcept</code></pre>
+          <p>
+            Calls destructor on object at <code>ptr</code> via
+            <code>std::destroy_at()</code>. Only destroys the object and does
+            not deallocate memory. Memory can only be reclaimed via
+            <code>reset()</code>.
+          </p>
+        </div>
+      </section>
+
+      <section id="usage">
+        <h3>Usage</h3>
+        <pre><code>#include "linear_allocator.h"
+ 
+// Heap-based allocator (1KB)
+allocator::LinearAllocator&lt;1024, allocator::BufferType::HEAP&gt; heap_alloc{};
+            
+// Allocate and construct objects
+int* x {heap_alloc.emplace&lt;int&gt;(42)};
+std::string* s {heap_alloc.emplace&lt;std::string&gt;("hello")};
+            
+// Manual destruction before reset
+heap_alloc.destroy(s);
+heap_alloc.destroy(x);
+            
+// Reclaim all memory
+heap_alloc.reset();
+            
+// Stack-based allocator (512 bytes)
+allocator::LinearAllocator&lt;512, allocator::BufferType::STACK&gt; stack_alloc;
+            
+// Raw byte allocation
+std::byte* buffer {stack_alloc.allocate(128, 16)};  // 128 bytes, 16-byte aligned
+            
+// External buffer
+std::array my_buffer{};
+allocator::LinearAllocator&lt;2048, allocator::BufferType::EXTERNAL&gt; ext_alloc{my_buffer};</code></pre>
+      </section>
+    </main>
+    <site-footer></site-footer>
+  </body>
+</html>

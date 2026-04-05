@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="js/components.js" defer></script>
+    <script type="module" src="js/script.js"></script>
+    <title>Memory Allocators</title>
+  </head>
+  <body>
+    <site-nav></site-nav>
+    <main>
+      <header>
+        <h2>Visualizer</h2>
+      </header>
+
+      <section class="allocator-selection">
+        <button class="toggle" data-type="linear">Linear</button>
+        <button class="toggle" data-type="free-list">Free List</button>
+        <button class="toggle" data-type="buddy">Buddy</button>
+      </section>
+
+      <section class="visualizer">
+        <h3 class="title"></h3>
+        <br />
+        <br />
+        <div id="allocator"></div>
+        <br />
+        <div id="legend">
+          <div class="legend-item">
+            <div class="block used legend-swatch"></div>
+            <span>Used</span>
+          </div>
+          <div class="legend-item">
+            <div class="block free legend-swatch"></div>
+            <span>Free</span>
+          </div>
+          <div class="legend-item">
+            <div class="block header legend-swatch"></div>
+            <span>Header</span>
+          </div>
+        </div>
+        <em id="note">NOTE: Allocation sizes may include adjustments for alignment</em>
+      </section>
+
+      <section class="metrics">
+        <h4>Metrics</h4>
+        <ul class="metrics-list">
+          <li>Used: <span id="m-used"></span> B</li>
+          <li>Free: <span id="m-free"></span> B</li>
+        </ul>
+      </section>
+
+      <section class="controls">
+        <h4>Controls</h4>
+      </section>
+    </main>
+    <site-footer></site-footer>
+  </body>
+</html>

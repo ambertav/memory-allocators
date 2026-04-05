@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="../styles.css" />
+    <script src="../js/components.js" defer></script>
+    <title>Memory Allocators | Buddy Allocator</title>
+  </head>
+  <body>
+    <site-nav></site-nav>
+    <main>
+      <header>
+        <h2>Buddy Allocator</h2>
+        <p>
+          An allocator that supports power-of-two allocations and deallocations
+          with automatic coalescing. Buddy allocators excel in scenarios
+          requiring fast, deterministic allocation with low fragmentation
+          overhead.
+        </p>
+      </header>
+
+      <section id="design">
+        <h3>Design</h3>
+        <p>
+          Buddy allocator manages memory within a contiguous buffer by
+          maintaining a set of free lists, one per level, where each level
+          corresponds to a power-of-two block size. The minimum block size is
+          dependent on <code>sizeof(Block)</code>, which stores the doubly
+          linked list pointers used to maintain the free lists.
+        </p>
+        <p>
+          On allocation, the requested size is rounded up to the nearest power
+          of two. If no block exists at the required level, a larger block is
+          split into two buddies, with one inserted into the free list and the
+          other used to satisfy the request. On deallocation, the block is
+          returned to its free list and recursively coalesced with its buddy,
+          reducing fragmentation.
+        </p>
+        <p>
+          Block levels are tracked in a flat <code>levels</code> array indexed
+          by minimum-block offset, and a bitmap tracks which blocks are
+          currently allocated, allowing O(1) buddy lookup and validity checking
+          while coalescing.
+        </p>
+        <p>
+          The allocator allows for a <code>BufferType</code> argument, in which
+          the caller can specify the type of memory (heap, stack, or external).
+          <code>BufferType::STACK</code> uses a fixed-size array stored inline
+          within the allocator object. <code>BufferType::EXTERNAL</code> signals
+          a contract in which the allocator will allocate but not own or manage
+          the memory's lifetime. The size of this external buffer must be known
+          at compile time. When <code>BufferType</code> is not specified, the
+          allocator defaults to <code>BufferType::HEAP</code>, dynamically
+          allocating memory and managing the cleanup in its destructor. Hence,
+          the copy, copy assignment, move, and move assignment operations are
+          deleted per the rule of 5.
+        </p>
+      </section>
+
+      <section id="limitations">
+        <h3>Limitations</h3>
+        All allocations are rounded up to the nearest power of two, which may
+        cause internal fragmentation for non-power-of-two allocation sizes. The
+        minimum allocation size is <code>sizeof(Block)</code>, as the block
+        metadata is stored within the free memory itself. The total capacity
+        <code>S</code> must be a power of two greater than zero.
+      </section>
+
+      <section id="api">
+        <h3>API Reference</h3>
+        <h4>Constructor</h4>
+        <div class="method">
+          <pre><code>template &lt;size_t S, BufferType B&gt;
+BuddyAllocator()</code></pre>
+          <p>
+            Creates a buddy allocator with capacity <code>S</code> bytes.
+            Behavior depends on <code>BufferType</code>:
+          </p>
+          <ul>
+            <li>
+              <code>BufferType::HEAP</code> : allocates <code>S</code> bytes on
+              the heap
+            </li>
+            <li>
+              <code>BufferType::STACK</code> : uses a stack-allocated buffer of
+              <code>S</code> bytes
+            </li>
+            <li>
+              <code>BufferType::EXTERNAL</code> : requires explicit buffer via
+              <code>BuddyAllocator(std::array&lt;std::byte, S&gt;&amp;)</code>
+            </li>
+          </ul>
+        </div>
+
+        <h4>Memory Management</h4>
+        <div class="method">
+          <pre><code>[[nodiscard]] std::byte* allocate(size_t size, size_t alignment) noexcept</code></pre>
+          <p>
+            Allocates a block of at least <code>size</code> bytes, rounded up to
+            the nearest power of two. Searches the free lists and splits larger
+            blocks as needed. Returns a pointer to allocated memory, or
+            <code>nullptr</code> on failure (insufficient space).
+          </p>
+        </div>
+        <div class="method">
+          <pre><code>void deallocate(std::byte* ptr) noexcept</code></pre>
+          <p>
+            Reclaims the allocation at <code>ptr</code> without calling a
+            destructor. Automatically coalesces with the buddy block if
+            available, recursively merging upward as much as possible. The
+            <code>ptr</code> must have been returned by <code>allocate()</code>.
+            Passing <code>nullptr</code> returns immediately, with no operation.
+          </p>
+        </div>
+        <div class="method">
+          <pre><code>void reset() noexcept</code></pre>
+          <p>
+            Resets the allocator, reclaiming all allocated memory for reuse.
+            Invalidates all previously allocated pointers without calling
+            destructors. For non-trivial types, consider calling
+            <code>destroy&lt;T&gt;()</code> before resetting.
+          </p>
+        </div>
+
+        <h4>Metrics</h4>
+        <div class="method">
+          <pre><code>size_t get_used() const noexcept</code></pre>
+          <p>
+            Returns the number of bytes currently allocated.
+          </p>
+        </div>
+        <div class="method">
+          <pre><code>size_t get_free() const noexcept</code></pre>
+          <p>Returns the number of bytes not yet allocated.</p>
+        </div>
+
+        <h4>Typed Helpers</h4>
+        <div class="method">
+          <pre><code>template &lt;typename T&gt;
+[[nodiscard]] T* allocate(size_t count = 1) noexcept</code></pre>
+          <p>
+            Typed allocation for <code>count</code> objects of type
+            <code>T</code>. Aligns to <code>count * sizeof(T)</code>, rounded up to the nearest power of two. Returns a typed
+            pointer or <code>nullptr</code> on failure.
+          </p>
+        </div>
+        <div class="method">
+          <pre><code>template &lt;typename T&gt; 
+            void deallocate(T* ptr) noexcept</code></pre>
+          <p>
+            Typed deallocation. Reclaims the <code>ptr</code>
+            without calling a destructor. For non-trivial types, consider
+            calling <code>destroy&lt;T&gt;()</code> before deallocation.
+          </p>
+        </div>
+        <div class="method">
+          <pre><code>template &lt;typename T, typename... Args&gt;
+[[nodiscard]] T* emplace(Args&amp;&amp;... args)</code></pre>
+          <p>
+            Allocates space for type <code>T</code> and constructs an object
+            in-place using constructor arguments <code>args</code> and
+            <code>std::construct_at()</code>. Returns a pointer to the
+            constructed object, or <code>nullptr</code> if allocation fails.
+          </p>
+        </div>
+        <div class="method">
+          <pre><code>template &lt;typename T&gt;
+void destroy(T* ptr) noexcept</code></pre>
+          <p>
+            Calls destructor on object at <code>ptr</code> via
+            <code>std::destroy_at()</code>. Only destroys the object and does
+            not deallocate memory. Memory can only be reclaimed via
+            <code>deallocate&lt;T&gt;()</code> <code>reset()</code>.
+          </p>
+        </div>
+      </section>
+
+      <section id="usage">
+        <h3>Usage</h3>
+        <pre><code>#include "buddy_allocator.h"
+
+// Heap-based allocator (1KB)
+allocator::BuddyAllocator&lt;1024, allocator::BufferType::HEAP&gt; heap_alloc{};
+            
+// Allocate and construct objects
+int* x {heap_alloc.emplace&lt;int&gt;(42)};
+std::string* s {heap_alloc.emplace&lt;std::string&gt;("hello")};
+            
+heap_alloc.destroy(s);
+heap_alloc.deallocate(s);
+            
+heap_alloc.destroy(x);
+heap_alloc.deallocate(x);
+            
+// Stack-based allocator
+allocator::BuddyAllocator&lt;512, allocator::BufferType::STACK&gt; stack_alloc{};
+            
+// Raw byte allocation
+std::byte* buffer {stack_alloc.allocate(128)};  // rounded up to 128 bytes
+stack_alloc.deallocate(buffer);
+            
+// External buffer
+std::array&lt;std::byte, 2048&gt; my_buffer{};
+allocator::BuddyAllocator&lt;2048, allocator::BufferType::EXTERNAL&gt; ext_alloc{my_buffer};
+            
+// Metrics
+size_t in_use {heap_alloc.get_used()};
+size_t available {heap_alloc.get_free()};</code></pre>
+      </section>
+    </main>
+    <site-footer></site-footer>
+  </body>
+</html>
