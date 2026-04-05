@@ -3,8 +3,10 @@ import AllocatorModule from '../wasm/allocator_wasm.js';
 let allocators;
 
 async function init() {
+  const base = new URL('../wasm/', import.meta.url).href;
+
   const Module = await AllocatorModule({
-    locateFile: (path) => `../wasm/${path}`,
+    locateFile: (path) => `${base}${path}`,
   });
 
   allocators = {

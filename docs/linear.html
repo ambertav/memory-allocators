@@ -22,7 +22,7 @@
       <section id="design">
         <h3>Design</h3>
         <p>
-          Linear allocator is a fast allocator that allots memory by
+          The <code>LinearAllocator</code> is a fast allocator that allots memory by
           incrementing a pointer through a contiguous, fixed memory buffer. Each
           allocation advances the pointer forward, making the process O(1) with
           minimal overhead.
@@ -34,7 +34,7 @@
           <code>destroy&lt;T&gt;()</code> are asymmetric.
           <code>emplace&lt;T&gt;()</code> allocates, constructs, and returns a
           pointer to the resource, while <code>destroy&lt;T&gt;()</code> simply
-          destructs the resource. This is purposeful, as
+          invokes the resource's destructor. This is purposeful, as
           <code>reset()</code> remains the only way through which to deallocate
           memory within the linear allocator.
         </p>
@@ -94,7 +94,7 @@ LinearAllocator()</code></pre>
                                      size_t new_size, size_t alignment) noexcept</code></pre>
           <p>
             Resizes the most recent allocation, if possible. Returns the same
-            pointer if successful, <code>nullptr</code> if the pointer doesn't
+            pointer if successful, or <code>nullptr</code> if the pointer doesn't
             match the last allocation or if insufficient space remains. Only
             works on the most recent allocation made.
           </p>
