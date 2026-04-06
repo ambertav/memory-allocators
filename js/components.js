@@ -1,7 +1,6 @@
 /////////////////////////////////
 // Navigation
 /////////////////////////////////
-
 class Navigation extends HTMLElement {
   connectedCallback() {
     const current = window.location.pathname;
