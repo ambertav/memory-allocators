@@ -2,6 +2,8 @@
 
 Custom memory allocators developed in C++.
 
+<a href="https://ambertav.github.io/memory-allocators/" target="_blank" rel="noopener noreferrer">View Visualizer</a>
+
 ## Motivations
 
 This project was a deep dive into memory allocation strategies and their implementation tradeoffs in C++. The visualizer grew out of a desire to make those tradeoffs visible, and served as an opportunity to explore running native C++ on the web via **Emscripten** and **WASM**.
