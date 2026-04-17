@@ -19,13 +19,33 @@
         </p>
       </header>
 
+      <section id="source">
+        <h3>Source Code</h3>
+        <ul class="docs-list">
+          <li>
+            <a
+              target="_blank"
+              href="https://github.com/ambertav/memory-allocators/blob/master/include/linear_allocator.h"
+              >Header</a
+            >
+          </li>
+          <li>
+            <a
+              target="_blank"
+              href="https://github.com/ambertav/memory-allocators/blob/master/include/linear_allocator.inl"
+              >Implementation</a
+            >
+          </li>
+        </ul>
+      </section>
+
       <section id="design">
         <h3>Design</h3>
         <p>
-          The <code>LinearAllocator</code> is a fast allocator that allots memory by
-          incrementing a pointer through a contiguous, fixed memory buffer. Each
-          allocation advances the pointer forward, making the process O(1) with
-          minimal overhead.
+          The <code>LinearAllocator</code> is a fast allocator that allots
+          memory by incrementing a pointer through a contiguous, fixed memory
+          buffer. Each allocation advances the pointer forward, making the
+          process O(1) with minimal overhead.
         </p>
         <p>
           The implementation holds true to the philosophy of linear allocators:
@@ -94,9 +114,9 @@ LinearAllocator()</code></pre>
                                      size_t new_size, size_t alignment) noexcept</code></pre>
           <p>
             Resizes the most recent allocation, if possible. Returns the same
-            pointer if successful, or <code>nullptr</code> if the pointer doesn't
-            match the last allocation or if insufficient space remains. Only
-            works on the most recent allocation made.
+            pointer if successful, or <code>nullptr</code> if the pointer
+            doesn't match the last allocation or if insufficient space remains.
+            Only works on the most recent allocation made.
           </p>
         </div>
         <div class="method">

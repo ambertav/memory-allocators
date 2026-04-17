@@ -154,6 +154,7 @@ template <size_t S, BufferType B>
 void BuddyAllocator<S, B>::reset() noexcept {
   bitmap.reset();
   free_blocks = {};
+  used = 0;
 
   Block* block{reinterpret_cast<Block*>(data)};
   block->next = nullptr;
