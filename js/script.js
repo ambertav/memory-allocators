@@ -31,7 +31,11 @@ const config = {
   },
 };
 
-const pointers = new Map();
+const pointers = {
+  linear: new Map(),
+  'free-list': new Map(),
+  buddy: new Map(),
+};
 const SIZE = 1024;
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -48,6 +52,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       renderAllocator(type);
       renderDescription(type);
       renderControls(type);
+      syncPointerDropdown(type);
     });
   });
 
@@ -111,21 +116,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const info = config[type];
     const controls = document.querySelector('.controls');
 
-    const sizes = [];
-    for (let i = 16; i <= SIZE / 2; i *= 2) {
-      sizes.push(i);
-    }
-
     let html = `<h4>Controls</h4>`;
 
     if (info.controls.includes('allocate')) {
-      const options = sizes
-        .map((s) => `<option value="${s}">${s} bytes</option>`)
-        .join('');
       html += `
         <div class="control-row">
             <button id="allocate-button">Allocate</button>
-            <select id="allocate-size">${options}</select>
+            <input id="allocate-size" type="number" min="1" max="${SIZE / 2}" value="16" step="1" />
+            <span>bytes</span>
         </div>
       `;
     }
@@ -140,13 +138,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       `;
     }
     if (info.controls.includes('resize_last')) {
-      const options = sizes
-        .map((s) => `<option value="${s}">${s} bytes</option>`)
-        .join('');
       html += `
         <div class="control-row">
             <button id="resize-button">Resize Last</button>
-             <select id="resize-size">${options}</select>
+             <input id="resize-size" type="number" min="1" max="${SIZE / 2}" value="16" step="1" />
+             <span>bytes</span>
         </div>
       `;
     }
@@ -180,8 +176,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           return;
         }
 
-        pointers.set(ptr, size);
-        syncPointerDropdown();
+        pointers[type].set(ptr, size);
+        syncPointerDropdown(type);
         renderAllocator(type);
       };
     }
@@ -196,8 +192,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         allocators[type].deallocate(ptr);
-        pointers.delete(ptr);
-        syncPointerDropdown();
+        pointers[type].delete(ptr);
+        syncPointerDropdown(type);
         renderAllocator(type);
       };
     }
@@ -205,15 +201,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (resizeButton) {
       resizeButton.onclick = () => {
         const size = parseInt(document.getElementById('resize-size').value, 10);
-        const previous_ptr = [...pointers.keys()].at(-1);
+        const previous_ptr = [...pointers[type].keys()].at(-1);
         const new_ptr = allocators[type].resizeLast(previous_ptr, size);
         if (new_ptr === 0) {
           console.error('resize allocation failed');
           return;
         }
 
-        pointers.set(new_ptr, size);
-        syncPointerDropdown();
+        pointers[type].set(new_ptr, size);
+        syncPointerDropdown(type);
         renderAllocator(type);
       };
     }
@@ -221,14 +217,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (resetButton) {
       resetButton.onclick = () => {
         allocators[type].reset();
-        pointers.clear();
-        syncPointerDropdown();
+        pointers[type].clear();
+        syncPointerDropdown(type);
         renderAllocator(type);
       };
     }
   }
 
-  function syncPointerDropdown() {
+  function syncPointerDropdown(type) {
     const pointerDropdown = document.getElementById('deallocate-ptr');
     if (!pointerDropdown) {
       return;
@@ -237,7 +233,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const prev = pointerDropdown.value;
     pointerDropdown.innerHTML = `
         <option value="" disabled selected>- select block -</option>
-        ${[...pointers.entries()]
+        ${[...pointers[type].entries()]
           .map(
             ([ptr, size]) =>
               `<option value="${ptr}">0x${ptr.toString(16)}, (${size} bytes)</option>`,
@@ -245,7 +241,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           .join('')};
     `;
 
-    if (pointers.has(parseInt(prev))) {
+    if (pointers[type].has(parseInt(prev))) {
       pointerDropdown.value = prev;
     }
   }
