@@ -57,6 +57,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   function renderAllocator(type) {
+    resetError();
+
     const state = JSON.parse(allocators[type].getState());
 
     renderBlocks(type, state);
@@ -166,13 +168,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (allocateButton) {
       allocateButton.onclick = () => {
+        resetError();
+
         const size = parseInt(
           document.getElementById('allocate-size').value,
           10,
         );
         const ptr = allocators[type].allocate(size);
         if (ptr === 0) {
-          console.error('allocation failed');
+          handleError('Allocation failed');
           return;
         }
 
@@ -184,10 +188,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (deallocateButton) {
       deallocateButton.onclick = () => {
+        resetError();
         const selectedOption = document.getElementById('deallocate-ptr');
         const ptr = parseInt(selectedOption.value, 10);
         if (isNaN(ptr)) {
-          console.error('could not parse pointer');
+          handleError('Could not parse pointer');
           return;
         }
 
@@ -200,11 +205,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (resizeButton) {
       resizeButton.onclick = () => {
+        resetError();
         const size = parseInt(document.getElementById('resize-size').value, 10);
         const previous_ptr = [...pointers[type].keys()].at(-1);
         const new_ptr = allocators[type].resizeLast(previous_ptr, size);
         if (new_ptr === 0) {
-          console.error('resize allocation failed');
+          handleError('Resize allocation failed');
           return;
         }
 
@@ -216,6 +222,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (resetButton) {
       resetButton.onclick = () => {
+        resetError();
         allocators[type].reset();
         pointers[type].clear();
         syncPointerDropdown(type);
@@ -244,5 +251,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (pointers[type].has(parseInt(prev))) {
       pointerDropdown.value = prev;
     }
+  }
+
+  function handleError(message) {
+    const element = document.getElementById('error');
+    element.innerHTML = message;
+    element.classList.add('view');
+  }
+
+  function resetError() {
+    const element = document.getElementById('error');
+    element.innerHTML = '';
+    element.classList.remove('view');
   }
 });
