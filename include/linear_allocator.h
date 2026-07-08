@@ -38,6 +38,9 @@ class LinearAllocator {
 
   std::string get_state() const noexcept;
 
+  size_t get_used() const noexcept;
+  size_t get_free() const noexcept;
+
   //////////////////////
   // type-safe helpers
   //////////////////////

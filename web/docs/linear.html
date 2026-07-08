@@ -129,6 +129,16 @@ LinearAllocator()</code></pre>
           </p>
         </div>
 
+        <h4>Metrics</h4>
+        <div class="method">
+          <pre><code>size_t get_used() const noexcept</code></pre>
+          <p>Returns the number of bytes currently allocated.</p>
+        </div>
+        <div class="method">
+          <pre><code>size_t get_free() const noexcept</code></pre>
+          <p>Returns the number of bytes not yet allocated.</p>
+        </div>
+
         <h4>Typed Helpers</h4>
         <div class="method">
           <pre><code>template &lt;typename T&gt;

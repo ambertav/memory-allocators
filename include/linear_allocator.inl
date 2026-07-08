@@ -129,12 +129,22 @@ std::string LinearAllocator<S, B>::get_state() const noexcept {
     }
 
     return "{\"totalBytes\":" + std::to_string(S) + ",\"blocks\":[" + blocks +
-           "],\"metrics\":{\"used\":" + std::to_string(offset) +
-           ",\"free\":" + std::to_string(S - offset) + ",\"fragmentation\":0}}";
+           "],\"metrics\":{\"used\":" + std::to_string(get_used()) +
+           ",\"free\":" + std::to_string(get_free()) + ",\"fragmentation\":0}}";
 
   } catch (...) {
     return {};
   }
+}
+
+template <size_t S, BufferType B>
+size_t LinearAllocator<S, B>::get_used() const noexcept {
+  return offset;
+}
+
+template <size_t S, BufferType B>
+size_t LinearAllocator<S, B>::get_free() const noexcept {
+  return S - offset;
 }
 
 //////////////////////

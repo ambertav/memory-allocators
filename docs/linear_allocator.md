@@ -49,7 +49,22 @@ void reset() noexcept
 
 Resets the allocator, reclaiming all allocated memory for reuse. Invalidates all previously allocated pointers without calling destructors. For non-trivial types, consider calling `destroy<T>()` before resetting. 
 
+### Metrics
+
+```cpp
+size_t get_used() const noexcept
+```
+
+Returns the number of bytes currently allocated.
+
+```cpp
+size_t get_free() const noexcept
+```
+
+Returns the number of bytes not yet allocated.
+
 ### Typed Helpers
+
 ```cpp
 template <typename T>
 [[nodiscard]] T* allocate(size_t count = 1) noexcept
