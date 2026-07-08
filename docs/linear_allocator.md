@@ -108,5 +108,5 @@ allocator::LinearAllocator<2048, allocator::BufferType::EXTERNAL> ext_alloc{my_b
 
 ## Performance
 
-Run `.bin/perf` for a full overview of performance across all `BufferType` permutations of the `LinearAllocator`, against the [`FreeListAllocator`](free_list_allocator.md), [`BuddyAllocator`](buddy_allocator.md), and the standard implementation of `new`.
+Run `./bin/perf` for a full overview of performance across all `BufferType` permutations of the `LinearAllocator`, against the [`FreeListAllocator`](free_list_allocator.md), [`BuddyAllocator`](buddy_allocator.md), and the standard implementation of `new`.
 

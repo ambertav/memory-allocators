@@ -9,7 +9,7 @@ constexpr size_t SIZE{1024};
 constexpr size_t ALIGNMENT{sizeof(Node)};
 
 using Linear = LinearAllocator<SIZE, BufferType::HEAP>;
-using FreeList = FreeListAllocator<SIZE, BufferType::HEAP, FitStrategy::FIRST>;
+using FreeList = FreeListAllocator<SIZE, FitStrategy::FIRST, BufferType::HEAP>;
 using Buddy = BuddyAllocator<SIZE, BufferType::HEAP>;
 
 EMSCRIPTEN_BINDINGS(allocators) {

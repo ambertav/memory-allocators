@@ -11,8 +11,8 @@ class FreeListAllocatorTypedTest : public ::testing::Test {
  protected:
   void SetUp() override {
     if constexpr (std::is_same_v<Allocator,
-                                 FreeListAllocator<1024, BufferType::EXTERNAL,
-                                                   FitStrategy::FIRST>>) {
+                                 FreeListAllocator<1024, FitStrategy::FIRST,
+                                                   BufferType::EXTERNAL>>) {
       alloc = std::make_unique<Allocator>(buf);
     } else {
       alloc = std::make_unique<Allocator>();
@@ -29,9 +29,9 @@ class FreeListAllocatorTypedTest : public ::testing::Test {
 // defaults to FitStrategy::FIRST if not specified
 using AllocatorTypes = ::testing::Types<
     FreeListAllocator<1024>,
-    FreeListAllocator<1024, BufferType::HEAP, FitStrategy::BEST>,
-    FreeListAllocator<1024, BufferType::STACK>,
-    FreeListAllocator<1024, BufferType::EXTERNAL>>;
+    FreeListAllocator<1024, FitStrategy::BEST, BufferType::HEAP>,
+    FreeListAllocator<1024, FitStrategy::FIRST, BufferType::STACK>,
+    FreeListAllocator<1024, FitStrategy::FIRST, BufferType::EXTERNAL>>;
 
 TYPED_TEST_SUITE(FreeListAllocatorTypedTest, AllocatorTypes);
 

@@ -3,6 +3,7 @@
 #include "linear_allocator.h"
 #include "free_list_allocator.h"
 #include "buddy_allocator.h"
+#include "pool_allocator.h"
 
 int main() {
   std::cout << "custom memory allocators\n";

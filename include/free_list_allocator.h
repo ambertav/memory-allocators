@@ -24,8 +24,8 @@ struct Placement {
   size_t padding;
 };
 
-template <size_t S, BufferType B = BufferType::HEAP,
-          FitStrategy F = FitStrategy::FIRST>
+template <size_t S, FitStrategy F = FitStrategy::FIRST,
+          BufferType B = BufferType::HEAP>
 class FreeListAllocator {
  public:
   static constexpr BufferType buffer_type = B;

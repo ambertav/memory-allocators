@@ -7,13 +7,13 @@
 namespace allocator::perf {
 using FreeListHeapFirst = FreeListAllocator<CAPACITY>;
 using FreeListHeapBest =
-    FreeListAllocator<CAPACITY, BufferType::HEAP, FitStrategy::BEST>;
-using FreeListStackFirst = FreeListAllocator<CAPACITY, BufferType::STACK>;
+    FreeListAllocator<CAPACITY, FitStrategy::BEST, BufferType::HEAP>;
+using FreeListStackFirst = FreeListAllocator<CAPACITY, FitStrategy::FIRST, BufferType::STACK>;
 using FreeListStackBest =
-    FreeListAllocator<CAPACITY, BufferType::STACK, FitStrategy::BEST>;
-using FreeListExternalFirst = FreeListAllocator<CAPACITY, BufferType::EXTERNAL>;
+    FreeListAllocator<CAPACITY, FitStrategy::BEST, BufferType::STACK>;
+using FreeListExternalFirst = FreeListAllocator<CAPACITY, FitStrategy::FIRST, BufferType::EXTERNAL>;
 using FreeListExternalBest =
-    FreeListAllocator<CAPACITY, BufferType::EXTERNAL, FitStrategy::BEST>;
+    FreeListAllocator<CAPACITY, FitStrategy::BEST, BufferType::EXTERNAL>;
 
 //////////////////////////////
 // allocation benchmarks
