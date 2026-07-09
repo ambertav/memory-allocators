@@ -9,6 +9,7 @@
 
 namespace allocator::perf {
 inline constexpr size_t CAPACITY{65536};
+inline constexpr size_t CHUNK_SIZE{64};
 inline constexpr int ROUNDS{100};
 
 struct Obj {
@@ -38,9 +39,12 @@ inline void BM_Allocation(::benchmark::State& state) {
     std::byte* ptr{};
 
     if constexpr (requires { setup.alloc->allocate(64, 8); }) {
-      ptr = setup.alloc->allocate(64, 8);
+      ptr = setup.alloc->allocate(
+          64, 8);  // linear and free list -> size, alignment
+    } else if constexpr (requires { setup.alloc->allocate(64); }) {
+      ptr = setup.alloc->allocate(64);  // buddy -> size
     } else {
-      ptr = setup.alloc->allocate(64);
+      ptr = setup.alloc->allocate();  // pool -> no args
     }
 
     ::benchmark::DoNotOptimize(ptr);
