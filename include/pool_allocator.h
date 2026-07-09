@@ -56,6 +56,9 @@ class PoolAllocator {
     requires(sizeof(T) <= C)
   [[nodiscard]] T* allocate() noexcept;
 
+  template <typename T>
+  void deallocate(T* ptr) noexcept;
+
   template <typename T, typename... Args>
     requires(sizeof(T) <= C)
   [[nodiscard]] T* emplace(Args&&... args);

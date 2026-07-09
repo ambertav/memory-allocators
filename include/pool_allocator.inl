@@ -1,5 +1,10 @@
 #pragma once
 
+#include <algorithm>
+#include <cassert>
+#include <ranges>
+#include <vector>
+
 #include "pool_allocator.h"
 
 namespace allocator {
@@ -96,7 +101,8 @@ std::string PoolAllocator<S, C, B>::get_state() const noexcept {
 
     std::string blocks{};
     for (const auto& ptr : pointers) {
-        size_t offset{static_cast<size_t>(reinterpret_cast<std::byte*>(ptr) - data)};
+      size_t offset{
+          static_cast<size_t>(reinterpret_cast<std::byte*>(ptr) - data)};
 
       if (!blocks.empty()) {
         blocks += ",";
@@ -158,6 +164,12 @@ template <typename T>
   requires(sizeof(T) <= C)
 T* PoolAllocator<S, C, B>::allocate() noexcept {
   return reinterpret_cast<T*>(this->PoolAllocator<S, C, B>::allocate());
+}
+
+template <size_t S, size_t C, BufferType B>
+template <typename T>
+void PoolAllocator<S, C, B>::deallocate(T* ptr) noexcept {
+  deallocate(reinterpret_cast<std::byte*>(ptr));
 }
 
 template <size_t S, size_t C, BufferType B>
