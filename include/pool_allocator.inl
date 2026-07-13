@@ -124,7 +124,7 @@ std::string PoolAllocator<S, C, B>::get_state() const noexcept {
       }
 
       blocks += "{\"ptr\":null,\"offset\":" + std::to_string(offset) +
-                ",\"size\":" + std::to_string(C) +
+                ",\"size\":" + std::to_string(C - sizeof(Chunk)) +
                 ",\"header\":" + std::to_string(sizeof(Chunk)) +
                 ",\"status\":\"free\"}";
 

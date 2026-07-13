@@ -103,7 +103,7 @@ template <typename T>
 void destroy(T* ptr) noexcept;
 ```
 
-Calls destructore on object at `ptr` via `std::destroy_at()`. Only destroys the object and does **not** deallocate memory. Memory can only be reclaimed via `deallocate<T>()` or `reset()`.
+Calls destructor on object at `ptr` via `std::destroy_at()`. Only destroys the object and does **not** deallocate memory. Memory can only be reclaimed via `deallocate<T>()` or `reset()`.
 
 
 ## Usage
