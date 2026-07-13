@@ -11,6 +11,7 @@ async function init() {
 
   allocators = {
     linear: new Module.LinearAllocator(),
+    pool: new Module.PoolAllocator(),
     'free-list': new Module.FreeListAllocator(),
     buddy: new Module.BuddyAllocator(),
   };
@@ -20,6 +21,10 @@ const config = {
   linear: {
     title: 'Linear Allocator',
     controls: ['allocate', 'resize_last', 'reset'],
+  },
+  pool: {
+    title: 'Pool Allocator',
+    controls: ['allocate', 'deallocate', 'reset'],
   },
   'free-list': {
     title: 'Free List Allocator',
@@ -33,6 +38,7 @@ const config = {
 
 const pointers = {
   linear: new Map(),
+  pool: new Map(),
   'free-list': new Map(),
   buddy: new Map(),
 };
