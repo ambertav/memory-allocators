@@ -141,4 +141,4 @@ size_t available {heap_alloc.get_free()};
 
 ## Performance
 
-Run `./bin/perf` for a full overview of performance across all `BufferType` permutations of the `BuddyAllocator`, against the [`LinearAllocator`](linear_allocator.md), [`FreeListAllocator`](free_list_allocator.md), and the standard implementation of `new`.
+Run `./bin/perf` for a full overview of performance across all `BufferType` permutations of the `BuddyAllocator`, against the [`LinearAllocator`](linear_allocator.md), [`FreeListAllocator`](free_list_allocator.md), [`PoolAllocator`](pool_allocator.md), and the standard implementation of `new`.
