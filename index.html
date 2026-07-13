@@ -17,6 +17,7 @@
 
       <section class="allocator-selection">
         <button class="toggle" data-type="linear">Linear</button>
+        <button class="toggle" data-type="pool">Pool</button>
         <button class="toggle" data-type="free-list">Free List</button>
         <button class="toggle" data-type="buddy">Buddy</button>
       </section>
@@ -42,8 +43,9 @@
           </div>
         </div>
         <em id="note">
-          NOTE: Allocation sizes may include adjustments for alignment and
-          padding. See documentation for more details.
+          NOTE: Allocation sizes may include adjustments for header metadata,
+          alignment and padding. On allocation metadata becomes available to the
+          user. See documentation for more details.
         </em>
 
         <div id="error"></div>

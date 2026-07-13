@@ -30,6 +30,7 @@ class Navigation extends HTMLElement {
             </button>
             <ul class="dropdown-menu">
               <li><a href="${root}docs/linear.html">Linear</a></li>
+              <li><a href="${root}docs/pool.html">Pool</a></li>
               <li><a href="${root}docs/freelist.html">Free List</a></li>
               <li><a href="${root}docs/buddy.html">Buddy</a></li>
             </ul>
