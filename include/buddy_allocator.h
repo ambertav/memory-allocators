@@ -8,6 +8,7 @@
 #include <string>
 #include <type_traits>
 #include <unordered_map>
+#include <variant>
 
 #include "common.h"
 
@@ -18,7 +19,8 @@ struct Block {
   Block* previous;
 };
 
-template <size_t S, BufferType B = BufferType::HEAP>
+template <size_t S, BufferType B = BufferType::HEAP,
+          Tracking Tr = Tracking::DISABLED>
 class BuddyAllocator {
  public:
   static constexpr BufferType buffer_type = B;
@@ -79,7 +81,9 @@ class BuddyAllocator {
   std::array<uint8_t, S / sizeof(Block)> levels;
 
   // for get_state()
-  std::unordered_map<uintptr_t, size_t> allocations;
+  [[no_unique_address]] std::conditional_t<
+      Tr == Tracking::ENABLED, std::unordered_map<uintptr_t, size_t>,
+      std::monostate> allocations{};
 };
 }  // namespace allocator
 

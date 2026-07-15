@@ -5,6 +5,7 @@
 #include <string>
 #include <type_traits>
 #include <unordered_set>
+#include <variant>
 
 #include "common.h"
 
@@ -14,7 +15,8 @@ struct Chunk {
   Chunk* next;
 };
 
-template <size_t S, size_t C, BufferType B = BufferType::HEAP>
+template <size_t S, size_t C, BufferType B = BufferType::HEAP,
+          Tracking Tr = Tracking::DISABLED>
 class PoolAllocator {
  public:
   static constexpr size_t chunk_size = C;
@@ -22,8 +24,8 @@ class PoolAllocator {
   static constexpr BufferType buffer_type = B;
 
   explicit PoolAllocator()
-    requires(S > 0 && S % C == 0 && C >= sizeof(Chunk) &&
-             B == BufferType::HEAP);
+    requires(S > 0 && S % C == 0 && C >= sizeof(Chunk) && B == BufferType::HEAP)
+  ;
   explicit PoolAllocator()
     requires(S > 0 && S % C == 0 && C >= sizeof(Chunk) &&
              B == BufferType::STACK);
@@ -78,7 +80,9 @@ class PoolAllocator {
   Chunk* head;
 
   // for get_state()
-  std::unordered_set<uintptr_t> allocations;
+  [[no_unique_address]] std::conditional_t<Tr == Tracking::ENABLED,
+                                           std::unordered_set<uintptr_t>,
+                                           std::monostate> allocations{};
 };
 }  // namespace allocator
 

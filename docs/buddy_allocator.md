@@ -14,7 +14,9 @@ On allocation, the requested size is rounded up to the nearest power-of-two. If 
 
 Block levels are tracked in a flat `levels` array indexed by minimum-block offset, and a bitmap tracks which blocks are currently allocated, allowing O(1) buddy lookup and validity checking while coalescing.
 
-The allocator allows for a `BufferType` argument, in which the caller can specify the type of memory (heap, stack, or external). `BufferType::STACK` uses a fixed-size array stored inline within the allocator object. `BufferType::EXTERNAL` signals a contract in which the allocator will allocate but not own or manage the memory's lifetime. The size of this external buffer must be known at compile time. When `BufferType` is not specified, the allocator defaults to `BufferType::HEAP`, dynamically allocating memory and managing cleanup in its destructor. Hence, the copy, copy assignment, move, and move assignment operations are deleted per the rule of 5.
+The allocator allows for a `BufferType` template parameter, in which the caller can specify the type of memory (heap, stack, or external). `BufferType::STACK` uses a fixed-size array stored inline within the allocator object. `BufferType::EXTERNAL` signals a contract in which the allocator will allocate but not own or manage the memory's lifetime. The size of this external buffer must be known at compile time. When `BufferType` is not specified, the allocator defaults to `BufferType::HEAP`, dynamically allocating memory and managing cleanup in its destructor. Hence, the copy, copy assignment, move, and move assignment operations are deleted per the rule of 5.
+
+The allocator accepts a `Tracking` template parameter to either enable or disable internal tracking of allocator state. `Tracking::ENABLED` records allocation metadata as allocation and deallocations occur. The user can then call `get_state()` to obtain a JSON-formatted `std::string` that details the allocator's current live allocations and free space. `Tracking::ENABLED` is critical for enabling visualizer functionality. `Tracking::DISABLED` removes this bookkeeping entirely, and thus does not accrue any overhead beyond core allocator logic. Calling `get_state()` on a `Tracking::DISABLED` allocator is a compile error. When `Tracking` is not specified, the allocator defaults to `Tracking::DISABLED`. 
 
 ## Limitations
 
@@ -25,7 +27,7 @@ All allocations are rounded up to the nearest power-of-two, which may cause inte
 ### Constructor
 
 ```cpp
-template <size_t S, BufferType B>
+template <size_t S, BufferType B, Tracking Tr>
 BuddyAllocator()
 ```
 

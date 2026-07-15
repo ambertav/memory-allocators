@@ -9,8 +9,8 @@
 #include "linear_allocator.h"
 
 namespace allocator {
-template <size_t S, BufferType B>
-LinearAllocator<S, B>::LinearAllocator()
+template <size_t S, BufferType B, Tracking Tr>
+LinearAllocator<S, B, Tr>::LinearAllocator()
   requires(S > 0 && B == BufferType::HEAP)
     : buffer(static_cast<std::byte*>(::operator new(S))),
       data(buffer),
@@ -18,8 +18,8 @@ LinearAllocator<S, B>::LinearAllocator()
       offset(0),
       previous_offset(0) {}
 
-template <size_t S, BufferType B>
-LinearAllocator<S, B>::LinearAllocator()
+template <size_t S, BufferType B, Tracking Tr>
+LinearAllocator<S, B, Tr>::LinearAllocator()
   requires(S > 0 && B == BufferType::STACK)
     : buffer(std::array<std::byte, S>{}),
       data(buffer.data()),
@@ -27,8 +27,8 @@ LinearAllocator<S, B>::LinearAllocator()
       offset(0),
       previous_offset(0) {}
 
-template <size_t S, BufferType B>
-LinearAllocator<S, B>::LinearAllocator(std::array<std::byte, S>& buf)
+template <size_t S, BufferType B, Tracking Tr>
+LinearAllocator<S, B, Tr>::LinearAllocator(std::array<std::byte, S>& buf)
   requires(S > 0 && B == BufferType::EXTERNAL)
     : buffer(buf.data()), offset(0), previous_offset(0) {
   // ensures buffer pointer is aligned
@@ -37,16 +37,16 @@ LinearAllocator<S, B>::LinearAllocator(std::array<std::byte, S>& buf)
   capacity = S - (data - buf.data());
 }
 
-template <size_t S, BufferType B>
-LinearAllocator<S, B>::~LinearAllocator() noexcept {
+template <size_t S, BufferType B, Tracking Tr>
+LinearAllocator<S, B, Tr>::~LinearAllocator() noexcept {
   if constexpr (B == BufferType::HEAP) {
     ::operator delete(buffer);
   }
 }
 
-template <size_t S, BufferType B>
-std::byte* LinearAllocator<S, B>::allocate(size_t size,
-                                           size_t alignment) noexcept {
+template <size_t S, BufferType B, Tracking Tr>
+std::byte* LinearAllocator<S, B, Tr>::allocate(size_t size,
+                                               size_t alignment) noexcept {
   if (!is_valid_alignment(alignment)) {
     return nullptr;
   }
@@ -63,14 +63,17 @@ std::byte* LinearAllocator<S, B>::allocate(size_t size,
   previous_offset = aligned;
   offset = new_offset;
 
-  allocations[aligned] = size;
+  if constexpr (Tr == Tracking::ENABLED) {
+    allocations[aligned] = size;
+  }
+
   return (data + aligned);
 }
 
-template <size_t S, BufferType B>
-std::byte* LinearAllocator<S, B>::resize_last(std::byte* previous_memory,
-                                              size_t new_size,
-                                              size_t alignment) noexcept {
+template <size_t S, BufferType B, Tracking Tr>
+std::byte* LinearAllocator<S, B, Tr>::resize_last(std::byte* previous_memory,
+                                                  size_t new_size,
+                                                  size_t alignment) noexcept {
   if (!is_valid_alignment(alignment)) {
     return nullptr;
   }
@@ -87,63 +90,74 @@ std::byte* LinearAllocator<S, B>::resize_last(std::byte* previous_memory,
     return nullptr;
   }
 
-  allocations[previous_offset] = new_size;
+  if constexpr (Tr == Tracking::ENABLED) {
+    allocations[previous_offset] = new_size;
+  }
 
   // update and return same pointer
   offset = new_offset;
   return previous_memory;
 }
 
-template <size_t S, BufferType B>
-void LinearAllocator<S, B>::reset() noexcept {
+template <size_t S, BufferType B, Tracking Tr>
+void LinearAllocator<S, B, Tr>::reset() noexcept {
   previous_offset = 0;
   offset = 0;
-  allocations.clear();
-}
 
-template <size_t S, BufferType B>
-std::string LinearAllocator<S, B>::get_state() const noexcept {
-  try {
-    std::vector<std::pair<uintptr_t, size_t>> pointers(allocations.begin(),
-                                                       allocations.end());
-    std::ranges::sort(pointers);
-
-    std::string blocks{};
-    for (const auto& [start, size] : pointers) {
-      if (!blocks.empty()) {
-        blocks += ",";
-      }
-      blocks += "{\"ptr\":" + std::to_string(start) +
-                ",\"offset\":" + std::to_string(start) +
-                ",\"size\":" + std::to_string(size) +
-                ",\"header\":0,\"status\":\"used\"}";
-    }
-
-    if (offset < S) {
-      if (!blocks.empty()) {
-        blocks += ",";
-      }
-      blocks += "{\"ptr\":null,\"offset\":" + std::to_string(offset) +
-                ",\"size\":" + std::to_string(S - offset) +
-                ",\"header\":0,\"status\":\"free\"}";
-    }
-
-    return "{\"totalBytes\":" + std::to_string(S) + ",\"blocks\":[" + blocks +
-           "],\"metrics\":{\"used\":" + std::to_string(get_used()) +
-           ",\"free\":" + std::to_string(get_free()) + ",\"fragmentation\":0}}";
-
-  } catch (...) {
-    return {};
+  if constexpr (Tr == Tracking::ENABLED) {
+    allocations.clear();
   }
 }
 
-template <size_t S, BufferType B>
-size_t LinearAllocator<S, B>::get_used() const noexcept {
+template <size_t S, BufferType B, Tracking Tr>
+std::string LinearAllocator<S, B, Tr>::get_state() const noexcept {
+  if constexpr (Tr == Tracking::ENABLED) {
+    try {
+      std::vector<std::pair<uintptr_t, size_t>> pointers(allocations.begin(),
+                                                         allocations.end());
+      std::ranges::sort(pointers);
+
+      std::string blocks{};
+      for (const auto& [start, size] : pointers) {
+        if (!blocks.empty()) {
+          blocks += ",";
+        }
+        blocks += "{\"ptr\":" + std::to_string(start) +
+                  ",\"offset\":" + std::to_string(start) +
+                  ",\"size\":" + std::to_string(size) +
+                  ",\"header\":0,\"status\":\"used\"}";
+      }
+
+      if (offset < S) {
+        if (!blocks.empty()) {
+          blocks += ",";
+        }
+        blocks += "{\"ptr\":null,\"offset\":" + std::to_string(offset) +
+                  ",\"size\":" + std::to_string(S - offset) +
+                  ",\"header\":0,\"status\":\"free\"}";
+      }
+
+      return "{\"totalBytes\":" + std::to_string(S) + ",\"blocks\":[" + blocks +
+             "],\"metrics\":{\"used\":" + std::to_string(get_used()) +
+             ",\"free\":" + std::to_string(get_free()) +
+             ",\"fragmentation\":0}}";
+
+    } catch (...) {
+      return {};
+    }
+  } else {
+    static_assert(Tr == Tracking::ENABLED,
+                  "get_state() requires Tracking::ENABLED");
+  }
+}
+
+template <size_t S, BufferType B, Tracking Tr>
+size_t LinearAllocator<S, B, Tr>::get_used() const noexcept {
   return offset;
 }
 
-template <size_t S, BufferType B>
-size_t LinearAllocator<S, B>::get_free() const noexcept {
+template <size_t S, BufferType B, Tracking Tr>
+size_t LinearAllocator<S, B, Tr>::get_free() const noexcept {
   return S - offset;
 }
 
@@ -151,9 +165,9 @@ size_t LinearAllocator<S, B>::get_free() const noexcept {
 // type-safe helpers
 //////////////////////
 
-template <size_t S, BufferType B>
+template <size_t S, BufferType B, Tracking Tr>
 template <typename T>
-T* LinearAllocator<S, B>::allocate(size_t count) noexcept {
+T* LinearAllocator<S, B, Tr>::allocate(size_t count) noexcept {
   if (count > SIZE_MAX / sizeof(T)) {  // check uint overflow
     return nullptr;
   }
@@ -163,9 +177,9 @@ T* LinearAllocator<S, B>::allocate(size_t count) noexcept {
   return reinterpret_cast<T*>(allocate(size, alignment));
 }
 
-template <size_t S, BufferType B>
+template <size_t S, BufferType B, Tracking Tr>
 template <typename T, typename... Args>
-T* LinearAllocator<S, B>::emplace(Args&&... args) {
+T* LinearAllocator<S, B, Tr>::emplace(Args&&... args) {
   size_t size{sizeof(T)};
   size_t alignment{alignof(T)};
 
@@ -178,9 +192,9 @@ T* LinearAllocator<S, B>::emplace(Args&&... args) {
                            std::forward<Args>(args)...);
 }
 
-template <size_t S, BufferType B>
+template <size_t S, BufferType B, Tracking Tr>
 template <typename T>
-void LinearAllocator<S, B>::destroy(T* ptr) noexcept {
+void LinearAllocator<S, B, Tr>::destroy(T* ptr) noexcept {
   // asymmetric, does not deallocate (only reset does)
   if (ptr) {
     std::destroy_at(ptr);

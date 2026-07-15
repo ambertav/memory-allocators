@@ -9,8 +9,8 @@
 #include "free_list_allocator.h"
 
 namespace allocator {
-template <size_t S, FitStrategy F, BufferType B>
-FreeListAllocator<S, F, B>::FreeListAllocator()
+template <size_t S, FitStrategy F, BufferType B, Tracking Tr>
+FreeListAllocator<S, F, B, Tr>::FreeListAllocator()
   requires(S > 0 && B == BufferType::HEAP)
     : buffer(static_cast<std::byte*>(::operator new(S))),
       data(buffer),
@@ -21,8 +21,8 @@ FreeListAllocator<S, F, B>::FreeListAllocator()
   head->next = nullptr;
 }
 
-template <size_t S, FitStrategy F, BufferType B>
-FreeListAllocator<S, F, B>::FreeListAllocator()
+template <size_t S, FitStrategy F, BufferType B, Tracking Tr>
+FreeListAllocator<S, F, B, Tr>::FreeListAllocator()
   requires(S > 0 && B == BufferType::STACK)
     : buffer(std::array<std::byte, S>{}),
       data(buffer.data()),
@@ -33,8 +33,8 @@ FreeListAllocator<S, F, B>::FreeListAllocator()
   head->size = S - sizeof(Node);
 }
 
-template <size_t S, FitStrategy F, BufferType B>
-FreeListAllocator<S, F, B>::FreeListAllocator(std::array<std::byte, S>& buf)
+template <size_t S, FitStrategy F, BufferType B, Tracking Tr>
+FreeListAllocator<S, F, B, Tr>::FreeListAllocator(std::array<std::byte, S>& buf)
   requires(S > 0 && B == BufferType::EXTERNAL)
     : buffer(buf.data()),
       data(buf.data()),
@@ -45,16 +45,16 @@ FreeListAllocator<S, F, B>::FreeListAllocator(std::array<std::byte, S>& buf)
   head->size = capacity - sizeof(Node);
 }
 
-template <size_t S, FitStrategy F, BufferType B>
-FreeListAllocator<S, F, B>::~FreeListAllocator() noexcept {
+template <size_t S, FitStrategy F, BufferType B, Tracking Tr>
+FreeListAllocator<S, F, B, Tr>::~FreeListAllocator() noexcept {
   if constexpr (B == BufferType::HEAP) {
     ::operator delete(buffer);
   }
 }
 
-template <size_t S, FitStrategy F, BufferType B>
-std::byte* FreeListAllocator<S, F, B>::allocate(size_t size,
-                                                size_t alignment) noexcept {
+template <size_t S, FitStrategy F, BufferType B, Tracking Tr>
+std::byte* FreeListAllocator<S, F, B, Tr>::allocate(size_t size,
+                                                    size_t alignment) noexcept {
   if (!is_valid_alignment(alignment)) {
     return nullptr;
   }
@@ -84,16 +84,19 @@ std::byte* FreeListAllocator<S, F, B>::allocate(size_t size,
   // adds padding pointer right before user data
   *reinterpret_cast<size_t*>(aligned - sizeof(size_t)) = placement.padding;
 
-  uintptr_t ptr{
-      static_cast<uintptr_t>(aligned - reinterpret_cast<uintptr_t>(data))};
-  size_t offset{static_cast<size_t>(
-      reinterpret_cast<std::byte*>(placement.current) - data)};
-  allocations[ptr] = {offset, placement.required};
+  if constexpr (Tr == Tracking::ENABLED) {
+    uintptr_t ptr{
+        static_cast<uintptr_t>(aligned - reinterpret_cast<uintptr_t>(data))};
+    size_t offset{static_cast<size_t>(
+        reinterpret_cast<std::byte*>(placement.current) - data)};
+    allocations[ptr] = {offset, placement.required};
+  }
+
   return reinterpret_cast<std::byte*>(aligned);
 }
 
-template <size_t S, FitStrategy F, BufferType B>
-void FreeListAllocator<S, F, B>::deallocate(std::byte* ptr) noexcept {
+template <size_t S, FitStrategy F, BufferType B, Tracking Tr>
+void FreeListAllocator<S, F, B, Tr>::deallocate(std::byte* ptr) noexcept {
   if (!ptr) {
     return;
   }
@@ -147,12 +150,15 @@ void FreeListAllocator<S, F, B>::deallocate(std::byte* ptr) noexcept {
     handle_links(previous, node);
   }
 
-  allocations.erase(static_cast<uintptr_t>(ptr - data));
+  if constexpr (Tr == Tracking::ENABLED) {
+    allocations.erase(static_cast<uintptr_t>(ptr - data));
+  }
+
   used -= block_size;
 }
 
-template <size_t S, FitStrategy F, BufferType B>
-void FreeListAllocator<S, F, B>::reset() noexcept {
+template <size_t S, FitStrategy F, BufferType B, Tracking Tr>
+void FreeListAllocator<S, F, B, Tr>::reset() noexcept {
   used = 0;
 
   if constexpr (B == BufferType::STACK) {
@@ -164,64 +170,71 @@ void FreeListAllocator<S, F, B>::reset() noexcept {
   head->size = S - sizeof(Node);
   head->next = nullptr;
 
-  allocations.clear();
-}
-
-template <size_t S, FitStrategy F, BufferType B>
-std::string FreeListAllocator<S, F, B>::get_state() const noexcept {
-  try {
-    std::vector<std::pair<uintptr_t, std::pair<size_t, size_t>>> pointers(
-        allocations.begin(), allocations.end());
-    std::ranges::sort(pointers);
-
-    std::string blocks{};
-    for (const auto& [ptr, info] : pointers) {
-      const auto& [start, size] = info;
-      if (!blocks.empty()) {
-        blocks += ",";
-      }
-
-      blocks += "{\"ptr\":" + std::to_string(ptr) +
-                ",\"offset\":" + std::to_string(start) +
-                ",\"size\":" + std::to_string(size) +
-                ",\"header\":" + std::to_string(ptr - start) +
-                ",\"status\":\"used\"}";
-    }
-
-    Node* node{head};
-    while (node != nullptr) {
-      size_t start{
-          static_cast<size_t>(reinterpret_cast<std::byte*>(node) - data)};
-
-      if (!blocks.empty()) {
-        blocks += ",";
-      }
-      blocks += "{\"ptr\":null,\"offset\":" + std::to_string(start) +
-                ",\"size\":" + std::to_string(node->size) +
-                ",\"header\":" + std::to_string(sizeof(Node)) +
-                ",\"status\":\"free\"}";
-
-      node = node->next;
-    }
-
-    return "{\"totalBytes\":" + std::to_string(S) +
-           ",\"nodeSize\":" + std::to_string(sizeof(Node)) +
-           ",\"ptrSize\":" + std::to_string(sizeof(Node*)) + ",\"blocks\":[" +
-           blocks + "],\"metrics\":{\"used\":" + std::to_string(used) +
-           ",\"free\":" + std::to_string(S - used) + ",\"fragmentation\":0}}";
-
-  } catch (...) {
-    return {};
+  if constexpr (Tr == Tracking::ENABLED) {
+    allocations.clear();
   }
 }
 
-template <size_t S, FitStrategy F, BufferType B>
-size_t FreeListAllocator<S, F, B>::get_used() const noexcept {
+template <size_t S, FitStrategy F, BufferType B, Tracking Tr>
+std::string FreeListAllocator<S, F, B, Tr>::get_state() const noexcept {
+  if constexpr (Tr == Tracking::ENABLED) {
+    try {
+      std::vector<std::pair<uintptr_t, std::pair<size_t, size_t>>> pointers(
+          allocations.begin(), allocations.end());
+      std::ranges::sort(pointers);
+
+      std::string blocks{};
+      for (const auto& [ptr, info] : pointers) {
+        const auto& [start, size] = info;
+        if (!blocks.empty()) {
+          blocks += ",";
+        }
+
+        blocks += "{\"ptr\":" + std::to_string(ptr) +
+                  ",\"offset\":" + std::to_string(start) +
+                  ",\"size\":" + std::to_string(size) +
+                  ",\"header\":" + std::to_string(ptr - start) +
+                  ",\"status\":\"used\"}";
+      }
+
+      Node* node{head};
+      while (node != nullptr) {
+        size_t start{
+            static_cast<size_t>(reinterpret_cast<std::byte*>(node) - data)};
+
+        if (!blocks.empty()) {
+          blocks += ",";
+        }
+        blocks += "{\"ptr\":null,\"offset\":" + std::to_string(start) +
+                  ",\"size\":" + std::to_string(node->size) +
+                  ",\"header\":" + std::to_string(sizeof(Node)) +
+                  ",\"status\":\"free\"}";
+
+        node = node->next;
+      }
+
+      return "{\"totalBytes\":" + std::to_string(S) +
+             ",\"nodeSize\":" + std::to_string(sizeof(Node)) +
+             ",\"ptrSize\":" + std::to_string(sizeof(Node*)) + ",\"blocks\":[" +
+             blocks + "],\"metrics\":{\"used\":" + std::to_string(used) +
+             ",\"free\":" + std::to_string(S - used) + ",\"fragmentation\":0}}";
+
+    } catch (...) {
+      return {};
+    }
+  } else {
+    static_assert(Tr == Tracking::ENABLED,
+                  "get_state() requires Tracking::ENABLED");
+  }
+}
+
+template <size_t S, FitStrategy F, BufferType B, Tracking Tr>
+size_t FreeListAllocator<S, F, B, Tr>::get_used() const noexcept {
   return used;
 }
 
-template <size_t S, FitStrategy F, BufferType B>
-size_t FreeListAllocator<S, F, B>::get_free() const noexcept {
+template <size_t S, FitStrategy F, BufferType B, Tracking Tr>
+size_t FreeListAllocator<S, F, B, Tr>::get_free() const noexcept {
   return capacity - used;
 }
 
@@ -229,9 +242,9 @@ size_t FreeListAllocator<S, F, B>::get_free() const noexcept {
 // type-safe helpers
 //////////////////////
 
-template <size_t S, FitStrategy F, BufferType B>
+template <size_t S, FitStrategy F, BufferType B, Tracking Tr>
 template <typename T>
-T* FreeListAllocator<S, F, B>::allocate(size_t count) noexcept {
+T* FreeListAllocator<S, F, B, Tr>::allocate(size_t count) noexcept {
   if (count > SIZE_MAX / sizeof(T)) {
     return nullptr;
   }
@@ -241,15 +254,15 @@ T* FreeListAllocator<S, F, B>::allocate(size_t count) noexcept {
   return reinterpret_cast<T*>(allocate(size, alignment));
 }
 
-template <size_t S, FitStrategy F, BufferType B>
+template <size_t S, FitStrategy F, BufferType B, Tracking Tr>
 template <typename T>
-void FreeListAllocator<S, F, B>::deallocate(T* ptr) noexcept {
+void FreeListAllocator<S, F, B, Tr>::deallocate(T* ptr) noexcept {
   deallocate(reinterpret_cast<std::byte*>(ptr));
 }
 
-template <size_t S, FitStrategy F, BufferType B>
+template <size_t S, FitStrategy F, BufferType B, Tracking Tr>
 template <typename T, typename... Args>
-T* FreeListAllocator<S, F, B>::emplace(Args&&... args) {
+T* FreeListAllocator<S, F, B, Tr>::emplace(Args&&... args) {
   size_t size{sizeof(T)};
   size_t alignment{alignof(T)};
 
@@ -262,9 +275,9 @@ T* FreeListAllocator<S, F, B>::emplace(Args&&... args) {
                            std::forward<Args>(args)...);
 }
 
-template <size_t S, FitStrategy F, BufferType B>
+template <size_t S, FitStrategy F, BufferType B, Tracking Tr>
 template <typename T>
-void FreeListAllocator<S, F, B>::destroy(T* ptr) noexcept {
+void FreeListAllocator<S, F, B, Tr>::destroy(T* ptr) noexcept {
   // asymmetric, does not deallocate (only reset does)
   if (ptr) {
     std::destroy_at(ptr);
@@ -275,9 +288,9 @@ void FreeListAllocator<S, F, B>::destroy(T* ptr) noexcept {
 // helpers
 //////////////////////
 
-template <size_t S, FitStrategy F, BufferType B>
-Placement FreeListAllocator<S, F, B>::find_first_fit(size_t size,
-                                                     size_t alignment) noexcept
+template <size_t S, FitStrategy F, BufferType B, Tracking Tr>
+Placement FreeListAllocator<S, F, B, Tr>::find_first_fit(
+    size_t size, size_t alignment) noexcept
   requires(F == FitStrategy::FIRST)
 {
   Node* current{head};
@@ -302,9 +315,9 @@ Placement FreeListAllocator<S, F, B>::find_first_fit(size_t size,
   return {nullptr, nullptr, 0, 0};
 }
 
-template <size_t S, FitStrategy F, BufferType B>
-Placement FreeListAllocator<S, F, B>::find_best_fit(size_t size,
-                                                    size_t alignment) noexcept
+template <size_t S, FitStrategy F, BufferType B, Tracking Tr>
+Placement FreeListAllocator<S, F, B, Tr>::find_best_fit(
+    size_t size, size_t alignment) noexcept
   requires(F == FitStrategy::BEST)
 {
   size_t min_diff{SIZE_MAX};
@@ -345,10 +358,9 @@ Placement FreeListAllocator<S, F, B>::find_best_fit(size_t size,
   return best;
 }
 
-template <size_t S, FitStrategy F, BufferType B>
-Node* FreeListAllocator<S, F, B>::handle_next_free(Node* current,
-                                                   size_t required_space,
-                                                   size_t remaining) noexcept {
+template <size_t S, FitStrategy F, BufferType B, Tracking Tr>
+Node* FreeListAllocator<S, F, B, Tr>::handle_next_free(
+    Node* current, size_t required_space, size_t remaining) noexcept {
   if (remaining <= sizeof(Node)) {
     return current->next;
   }
@@ -362,9 +374,9 @@ Node* FreeListAllocator<S, F, B>::handle_next_free(Node* current,
   return split;
 }
 
-template <size_t S, FitStrategy F, BufferType B>
-void FreeListAllocator<S, F, B>::handle_links(Node* previous,
-                                              Node* next) noexcept {
+template <size_t S, FitStrategy F, BufferType B, Tracking Tr>
+void FreeListAllocator<S, F, B, Tr>::handle_links(Node* previous,
+                                                  Node* next) noexcept {
   if (previous == nullptr) {
     head = next;
   } else {

@@ -10,10 +10,10 @@ constexpr size_t SIZE{1024};
 constexpr size_t CHUNK_SIZE{128};
 constexpr size_t ALIGNMENT{sizeof(Node)};
 
-using Linear = LinearAllocator<SIZE, BufferType::HEAP>;
-using Pool = PoolAllocator<SIZE, CHUNK_SIZE, BufferType::HEAP>;
-using FreeList = FreeListAllocator<SIZE, FitStrategy::FIRST, BufferType::HEAP>;
-using Buddy = BuddyAllocator<SIZE, BufferType::HEAP>;
+using Linear = LinearAllocator<SIZE, BufferType::HEAP, Tracking::ENABLED>;
+using Pool = PoolAllocator<SIZE, CHUNK_SIZE, BufferType::HEAP, Tracking::ENABLED>;
+using FreeList = FreeListAllocator<SIZE, FitStrategy::FIRST, BufferType::HEAP, Tracking::ENABLED>;
+using Buddy = BuddyAllocator<SIZE, BufferType::HEAP, Tracking::ENABLED>;
 
 EMSCRIPTEN_BINDINGS(allocators) {
   emscripten::class_<Linear>("LinearAllocator")

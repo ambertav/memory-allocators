@@ -7,6 +7,7 @@
 #include <string>
 #include <type_traits>
 #include <unordered_map>
+#include <variant>
 
 #include "common.h"
 
@@ -25,7 +26,7 @@ struct Placement {
 };
 
 template <size_t S, FitStrategy F = FitStrategy::FIRST,
-          BufferType B = BufferType::HEAP>
+          BufferType B = BufferType::HEAP, Tracking Tr = Tracking::DISABLED>
 class FreeListAllocator {
  public:
   static constexpr BufferType buffer_type = B;
@@ -87,9 +88,11 @@ class FreeListAllocator {
   Node* head;
 
   // for get_state()
-  std::unordered_map<uintptr_t,
-                     std::pair<size_t /* offset */, size_t /* size */>>
-      allocations;
+  [[no_unique_address]] std::conditional_t<
+      Tr == Tracking::ENABLED,
+      std::unordered_map<uintptr_t,
+                         std::pair<size_t /* offset */, size_t /* size */>>,
+      std::monostate> allocations{};
 };
 }  // namespace allocator
 
