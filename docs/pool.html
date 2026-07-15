@@ -57,17 +57,35 @@
         </p>
 
         <p>
-          The allocator allows for a <code>BufferType</code> argument, in which
-          the caller can specify the type of memory (heap, stack, or external).
-          <code>BufferType::STACK</code> uses a fixed-size array stored inline
-          within the allocator object. <code>BufferType::EXTERNAL</code> signals
-          a contract in which the allocator will allocate but not own or manage
-          the memory's lifetime. The size of this external buffer must be known
-          at compile time. When <code>BufferType</code> is not specified, the
-          allocator defaults to <code>BufferType::HEAP</code>, dynamically
-          allocating memory and managing the cleanup in its destructor. Hence,
-          the copy, copy assignment, move, and move assignment operations are
-          deleted per the rule of 5.
+          The allocator allows for a <code>BufferType</code> template parameter,
+          in which the caller can specify the type of memory (heap, stack, or
+          external). <code>BufferType::STACK</code> uses a fixed-size array
+          stored inline within the allocator object.
+          <code>BufferType::EXTERNAL</code> signals a contract in which the
+          allocator will allocate but not own or manage the memory's lifetime.
+          The size of this external buffer must be known at compile time. When
+          <code>BufferType</code> is not specified, the allocator defaults to
+          <code>BufferType::HEAP</code>, dynamically allocating memory and
+          managing the cleanup in its destructor. Hence, the copy, copy
+          assignment, move, and move assignment operations are deleted per the
+          rule of 5.
+        </p>
+
+        <p>
+          The allocator accepts a <code>Tracking</code> template parameter to
+          either enable or disable internal tracking of allocator state.
+          <code>Tracking::ENABLED</code> records allocation metadata as
+          allocation and deallocations occur. The user can then call
+          <code>get_state()</code> to obtain a JSON-formatted
+          <code>std::string</code> that details the allocator's current live
+          allocations and free space. <code>Tracking::ENABLED</code> is critical
+          for enabling visualizer functionality.
+          <code>Tracking::DISABLED</code> removes this bookkeeping entirely, and
+          thus does not accrue any overhead beyond core allocator logic. Calling
+          <code>get_state()</code> on a
+          <code>Tracking::DISABLED</code> allocator is a compile error. When
+          <code>Tracking</code> is not specified, the allocator defaults to
+          <code>Tracking::DISABLED</code>.
         </p>
       </section>
 
@@ -83,7 +101,7 @@
         <h3>API Reference</h3>
         <h4>Constructor</h4>
         <div class="method">
-          <pre><code>template &lt;size_t S, size_t C, BufferType B&gt;
+          <pre><code>template &lt;size_t S, size_t C, BufferType B, Tracking Tr&gt;
 PoolAllocator()</code></pre>
           <p>
             Creates a free list allocator with capacity <code>S</code> bytes and
