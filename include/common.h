@@ -20,20 +20,4 @@ inline size_t align_forward(size_t offset, size_t alignment) {
     return offset + (alignment - remainder);
   }
 }
-
-namespace tests {
-    struct Obj {
-  int x;
-  double y;
-  Obj(int a, double b) : x(a), y(b) {}
-};
-
-struct TrackedObj {
-  static inline int destructor_calls = 0;
-  int value;
-
-  TrackedObj(int v) : value(v) {}
-  ~TrackedObj() { ++destructor_calls; }
-};
-}
 }  // namespace allocator

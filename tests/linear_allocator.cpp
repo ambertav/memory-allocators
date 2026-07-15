@@ -1,4 +1,5 @@
 #include "linear_allocator.h"
+#include "test_common.h"
 
 #include <gtest/gtest.h>
 
