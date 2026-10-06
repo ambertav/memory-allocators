@@ -4,6 +4,7 @@
 #include <bit>
 #include <bitset>
 #include <cstddef>
+#include <cstdint>
 #include <span>
 #include <string>
 #include <type_traits>
@@ -15,14 +16,14 @@
 namespace allocator {
 
 struct Block {
-  Block* next;
-  Block* previous;
+  Block *next;
+  Block *previous;
 };
 
 template <size_t S, BufferType B = BufferType::HEAP,
           Tracking Tr = Tracking::DISABLED>
 class BuddyAllocator {
- public:
+public:
   static constexpr BufferType buffer_type = B;
 
   // NOTE: size must be a power of 2
@@ -30,18 +31,18 @@ class BuddyAllocator {
     requires(S > 0 && (S & (S - 1)) == 0 && B == BufferType::HEAP);
   explicit BuddyAllocator()
     requires(S > 0 && (S & (S - 1)) == 0 && B == BufferType::STACK);
-  explicit BuddyAllocator(std::array<std::byte, S>& buf)
+  explicit BuddyAllocator(std::array<std::byte, S> &buf)
     requires(S > 0 && (S & (S - 1)) == 0 && B == BufferType::EXTERNAL);
   ~BuddyAllocator() noexcept;
 
-  BuddyAllocator(const BuddyAllocator&) = delete;
-  BuddyAllocator& operator=(const BuddyAllocator&) = delete;
+  BuddyAllocator(const BuddyAllocator &) = delete;
+  BuddyAllocator &operator=(const BuddyAllocator &) = delete;
 
-  BuddyAllocator(BuddyAllocator&&) = delete;
-  BuddyAllocator& operator=(BuddyAllocator&&) = delete;
+  BuddyAllocator(BuddyAllocator &&) = delete;
+  BuddyAllocator &operator=(BuddyAllocator &&) = delete;
 
-  [[nodiscard]] std::byte* allocate(size_t size) noexcept;
-  void deallocate(std::byte* ptr) noexcept;
+  [[nodiscard]] std::byte *allocate(size_t size) noexcept;
+  void deallocate(std::byte *ptr) noexcept;
   void reset() noexcept;
 
   std::string get_state() const noexcept;
@@ -52,31 +53,28 @@ class BuddyAllocator {
   //////////////////////
   // type-safe helpers
   //////////////////////
-  template <typename T>
-  [[nodiscard]] T* allocate_as(size_t count = 1) noexcept;
+  template <typename T> [[nodiscard]] T *allocate_as() noexcept;
 
-  template <typename T>
-  void deallocate(T* ptr) noexcept;
+  template <typename T> void deallocate(T *ptr) noexcept;
 
   template <typename T, typename... Args>
-  [[nodiscard]] T* emplace(Args&&... args);
+  [[nodiscard]] T *emplace(Args &&...args);
 
-  template <typename T>
-  void destroy(T* ptr) noexcept;
+  template <typename T> void destroy(T *ptr) noexcept;
 
- private:
-  Block* get_buddy(Block* block, size_t level) const noexcept;
-  void unlink(Block* block, size_t level) noexcept;
+private:
+  Block *get_buddy(Block *block, size_t level) const noexcept;
+  void unlink(Block *block, size_t level) noexcept;
 
   std::conditional_t<B == BufferType::STACK, std::array<std::byte, S>,
-                     std::byte*>
+                     std::byte *>
       buffer;
-  std::byte* data;
+  std::byte *data;
   size_t capacity;
   size_t used;
 
   static constexpr size_t max_level{std::bit_width(S / sizeof(Block)) - 1};
-  std::array<Block*, max_level + 1> free_blocks{};
+  std::array<Block *, max_level + 1> free_blocks{};
   std::bitset<S / sizeof(Block)> bitmap{};
   std::array<uint8_t, S / sizeof(Block)> levels;
 
@@ -85,6 +83,6 @@ class BuddyAllocator {
       Tr == Tracking::ENABLED, std::unordered_map<uintptr_t, size_t>,
       std::monostate> allocations{};
 };
-}  // namespace allocator
+} // namespace allocator
 
 #include "buddy_allocator.inl"

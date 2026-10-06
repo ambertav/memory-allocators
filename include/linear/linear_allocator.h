@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
@@ -13,26 +14,26 @@ namespace allocator {
 template <size_t S, BufferType B = BufferType::HEAP,
           Tracking Tr = Tracking::DISABLED>
 class LinearAllocator {
- public:
+public:
   static constexpr BufferType buffer_type = B;
 
   explicit LinearAllocator()
     requires(S > 0 && B == BufferType::HEAP);
   explicit LinearAllocator()
     requires(S > 0 && B == BufferType::STACK);
-  explicit LinearAllocator(std::array<std::byte, S>& buf)
+  explicit LinearAllocator(std::array<std::byte, S> &buf)
     requires(S > 0 && B == BufferType::EXTERNAL);
   ~LinearAllocator() noexcept;
 
-  LinearAllocator(const LinearAllocator&) = delete;
-  LinearAllocator& operator=(const LinearAllocator&) = delete;
+  LinearAllocator(const LinearAllocator &) = delete;
+  LinearAllocator &operator=(const LinearAllocator &) = delete;
 
-  LinearAllocator(LinearAllocator&&) = delete;
-  LinearAllocator& operator=(LinearAllocator&&) = delete;
+  LinearAllocator(LinearAllocator &&) = delete;
+  LinearAllocator &operator=(LinearAllocator &&) = delete;
 
-  [[nodiscard]] std::byte* allocate(size_t size, size_t alignment) noexcept;
+  [[nodiscard]] std::byte *allocate(size_t size, size_t alignment) noexcept;
 
-  [[nodiscard]] std::byte* resize_last(std::byte* previous_memory,
+  [[nodiscard]] std::byte *resize_last(std::byte *previous_memory,
                                        size_t new_size,
                                        size_t alignment) noexcept;
 
@@ -46,20 +47,18 @@ class LinearAllocator {
   //////////////////////
   // type-safe helpers
   //////////////////////
-  template <typename T>
-  [[nodiscard]] T* allocate_as(size_t count = 1) noexcept;
+  template <typename T> [[nodiscard]] T *allocate_as() noexcept;
 
   template <typename T, typename... Args>
-  [[nodiscard]] T* emplace(Args&&... args);
+  [[nodiscard]] T *emplace(Args &&...args);
 
-  template <typename T>
-  void destroy(T* ptr) noexcept;
+  template <typename T> void destroy(T *ptr) noexcept;
 
- private:
+private:
   std::conditional_t<B == BufferType::STACK, std::array<std::byte, S>,
-                     std::byte*>
+                     std::byte *>
       buffer;
-  std::byte* data;
+  std::byte *data;
   size_t capacity;
   size_t offset;
   size_t previous_offset;
@@ -69,6 +68,6 @@ class LinearAllocator {
       Tr == Tracking::ENABLED, std::unordered_map<uintptr_t, size_t>,
       std::monostate> allocations{};
 };
-}  // namespace allocator
+} // namespace allocator
 
 #include "linear_allocator.inl"

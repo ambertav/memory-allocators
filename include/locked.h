@@ -36,8 +36,8 @@ class Locked {
   // type-safe helpers
   //////////////////////
 
-  template <typename T, typename... Args>
-  [[nodiscard]] T* allocate_as(Args&&... args) noexcept;
+  template <typename T>
+  [[nodiscard]] T* allocate_as() noexcept;
 
   template <typename T, typename... Args>
   [[nodiscard]] T* emplace(Args&&... args);

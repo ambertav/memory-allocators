@@ -185,9 +185,9 @@ FreeListAllocator()</code></pre>
         <h4>Typed Helpers</h4>
         <div class="method">
           <pre><code>template &lt;typename T&gt;
-[[nodiscard]] T* allocate_as(size_t count = 1) noexcept</code></pre>
+[[nodiscard]] T* allocate_as() noexcept</code></pre>
           <p>
-            Typed allocation for <code>count</code> objects of type
+            Typed allocation for an object of type
             <code>T</code>. Uses <code>alignof(T)</code> and
             <code>sizeof(T)</code> to automatically align. Returns a typed
             pointer or <code>nullptr</code> on failure.

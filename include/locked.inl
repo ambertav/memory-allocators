@@ -58,10 +58,10 @@ size_t Locked<Allocator>::get_free() const noexcept {
 //////////////////////
 
 template <typename Allocator>
-template <typename T, typename... Args>
-T* Locked<Allocator>::allocate_as(Args&&... args) noexcept {
+template <typename T>
+T* Locked<Allocator>::allocate_as() noexcept {
   std::lock_guard<std::mutex> lock(mutex);
-  return alloc.allocate_as(std::forward<Args>(args)...);
+  return alloc. template allocate_as<T>();
 }
 
 template <typename Allocator>

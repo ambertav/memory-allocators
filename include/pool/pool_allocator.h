@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <type_traits>
 #include <unordered_set>
@@ -12,13 +13,13 @@
 namespace allocator {
 
 struct Chunk {
-  Chunk* next;
+  Chunk *next;
 };
 
 template <size_t S, size_t C, BufferType B = BufferType::HEAP,
           Tracking Tr = Tracking::DISABLED>
 class PoolAllocator {
- public:
+public:
   static constexpr size_t chunk_size = C;
   static constexpr size_t chunk_count = S / C;
   static constexpr BufferType buffer_type = B;
@@ -29,19 +30,19 @@ class PoolAllocator {
   explicit PoolAllocator()
     requires(S > 0 && S % C == 0 && C >= sizeof(Chunk) &&
              B == BufferType::STACK);
-  explicit PoolAllocator(std::array<std::byte, S>& buf)
+  explicit PoolAllocator(std::array<std::byte, S> &buf)
     requires(S > 0 && S % C == 0 && C >= sizeof(Chunk) &&
              B == BufferType::EXTERNAL);
   ~PoolAllocator() noexcept;
 
-  PoolAllocator(const PoolAllocator&) = delete;
-  PoolAllocator& operator=(const PoolAllocator&) = delete;
+  PoolAllocator(const PoolAllocator &) = delete;
+  PoolAllocator &operator=(const PoolAllocator &) = delete;
 
-  PoolAllocator(PoolAllocator&&) = delete;
-  PoolAllocator& operator=(PoolAllocator&&) = delete;
+  PoolAllocator(PoolAllocator &&) = delete;
+  PoolAllocator &operator=(PoolAllocator &&) = delete;
 
-  [[nodiscard]] std::byte* allocate() noexcept;
-  void deallocate(std::byte* ptr) noexcept;
+  [[nodiscard]] std::byte *allocate() noexcept;
+  void deallocate(std::byte *ptr) noexcept;
   void reset() noexcept;
 
   std::string get_state() const noexcept;
@@ -56,34 +57,32 @@ class PoolAllocator {
 
   template <typename T>
     requires(sizeof(T) <= C)
-  [[nodiscard]] T* allocate_as() noexcept;
+  [[nodiscard]] T *allocate_as() noexcept;
 
-  template <typename T>
-  void deallocate(T* ptr) noexcept;
+  template <typename T> void deallocate(T *ptr) noexcept;
 
   template <typename T, typename... Args>
     requires(sizeof(T) <= C)
-  [[nodiscard]] T* emplace(Args&&... args);
+  [[nodiscard]] T *emplace(Args &&...args);
 
-  template <typename T>
-  void destroy(T* ptr) noexcept;
+  template <typename T> void destroy(T *ptr) noexcept;
 
- private:
+private:
   void divide_into_chunks() noexcept;
 
   std::conditional_t<B == BufferType::STACK, std::array<std::byte, S>,
-                     std::byte*>
+                     std::byte *>
       buffer;
-  std::byte* data;
+  std::byte *data;
   size_t capacity;
   size_t used;
-  Chunk* head;
+  Chunk *head;
 
   // for get_state()
   [[no_unique_address]] std::conditional_t<Tr == Tracking::ENABLED,
                                            std::unordered_set<uintptr_t>,
                                            std::monostate> allocations{};
 };
-}  // namespace allocator
+} // namespace allocator
 
 #include "pool_allocator.inl"
