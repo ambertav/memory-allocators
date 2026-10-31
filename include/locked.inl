@@ -18,19 +18,26 @@ std::byte* Locked<Allocator>::allocate(Args&&... args) noexcept {
 
 template <typename Allocator>
 template <typename... Args>
+  requires requires(Allocator& a, Args&&... args) {
+    a.resize_last(std::forward<Args>(args)...);
+  }
 std::byte* Locked<Allocator>::resize_last(Args&&... args) noexcept {
   std::lock_guard<std::mutex> lock(mutex);
   return alloc.resize_last(std::forward<Args>(args)...);
 }
 
 template <typename Allocator>
-void Locked<Allocator>::deallocate(std::byte* ptr) noexcept {
+void Locked<Allocator>::deallocate(std::byte* ptr) noexcept
+  requires requires(Allocator& a, std::byte* p) { a.deallocate(p); }
+{
   std::lock_guard<std::mutex> lock(mutex);
   alloc.deallocate(ptr);
 }
 
 template <typename Allocator>
-void Locked<Allocator>::reset() noexcept {
+void Locked<Allocator>::reset() noexcept
+  requires requires(Allocator& a) { a.reset(); }
+{
   std::lock_guard<std::mutex> lock(mutex);
   alloc.reset();
 }
@@ -61,21 +68,42 @@ template <typename Allocator>
 template <typename T>
 T* Locked<Allocator>::allocate_as() noexcept {
   std::lock_guard<std::mutex> lock(mutex);
-  return alloc. template allocate_as<T>();
+  return alloc.template allocate_as<T>();
+}
+
+template <typename Allocator>
+template <typename T>
+  requires requires(Allocator& a, T* p) { a.template deallocate_as<T>(p); }
+void Locked<Allocator>::deallocate_as(T* ptr) noexcept {
+  std::lock_guard<std::mutex> lock(mutex);
+  alloc.template deallocate_as<T>(ptr);
 }
 
 template <typename Allocator>
 template <typename T, typename... Args>
 T* Locked<Allocator>::emplace(Args&&... args) {
-  std::lock_guard<std::mutex> lock(mutex);
-  return alloc.emplace(std::forward<Args>(args)...);
+  T* ptr{allocate_as<T>()}; // acquires lock
+  if (!ptr) return nullptr;
+
+  try {
+    return std::construct_at(ptr, std::forward<Args>(args)...);
+  } catch (...) {
+    if constexpr (requires { deallocate_as<T>(ptr); }) {
+      deallocate_as<T>(ptr);    // acquires lock
+    }
+    throw;
+  }
 }
 
 template <typename Allocator>
 template <typename T>
 void Locked<Allocator>::destroy(T* ptr) noexcept {
-  std::lock_guard<std::mutex> lock(mutex);
-  alloc.destroy(ptr);
+  if (!ptr) return;
+  std::destroy_at(ptr);
+
+  if constexpr (requires { deallocate_as<T>(ptr); }) {
+    deallocate_as<T>(ptr);  // acquires locks
+  }
 }
 
 }  // namespace allocator

@@ -9,7 +9,7 @@ template <typename Allocator>
 class Locked {
  public:
   template <typename... Args>
-  Locked(Args&&... args);
+  explicit Locked(Args&&... args);
   ~Locked() noexcept = default;
 
   Locked(const Locked&) = delete;
@@ -22,10 +22,16 @@ class Locked {
   [[nodiscard]] std::byte* allocate(Args&&... args) noexcept;
 
   template <typename... Args>
+    requires requires(Allocator& a, Args&&... args) {
+      a.resize_last(std::forward<Args>(args)...);
+    }
   [[nodiscard]] std::byte* resize_last(Args&&... args) noexcept;
 
-  void deallocate(std::byte* ptr) noexcept;
-  void reset() noexcept;
+  void deallocate(std::byte* ptr) noexcept
+    requires requires(Allocator& a, std::byte* p) { a.deallocate(p); };
+
+  void reset() noexcept
+    requires requires(Allocator& a) { a.reset(); };
 
   std::string get_state() const noexcept;
 
@@ -39,6 +45,10 @@ class Locked {
   template <typename T>
   [[nodiscard]] T* allocate_as() noexcept;
 
+  template <typename T>
+    requires requires(Allocator& a, T* p) { a.template deallocate_as<T>(p); }
+  void deallocate_as(T* ptr) noexcept;
+
   template <typename T, typename... Args>
   [[nodiscard]] T* emplace(Args&&... args);
 
@@ -50,6 +60,5 @@ class Locked {
   Allocator alloc;
 };
 }  // namespace allocator
-
 
 #include "locked.inl"
