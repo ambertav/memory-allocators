@@ -195,7 +195,7 @@ FreeListAllocator()</code></pre>
         </div>
         <div class="method">
           <pre><code>template &lt;typename T&gt; 
-            void deallocate(T* ptr) noexcept</code></pre>
+            void deallocate_as(T* ptr) noexcept</code></pre>
           <p>
             Typed deallocation. Reclaims the <code>ptr</code> to the free list
             without calling a destructor. For non-trivial types, consider
