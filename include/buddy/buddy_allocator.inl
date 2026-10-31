@@ -245,7 +245,7 @@ T* BuddyAllocator<S, B, Tr>::allocate_as() noexcept {
 
 template <size_t S, BufferType B, Tracking Tr>
 template <typename T>
-void BuddyAllocator<S, B, Tr>::deallocate(T* ptr) noexcept {
+void BuddyAllocator<S, B, Tr>::deallocate_as(T* ptr) noexcept {
   deallocate(reinterpret_cast<std::byte*>(ptr));
 }
 

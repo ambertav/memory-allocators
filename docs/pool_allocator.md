@@ -87,7 +87,7 @@ Typed allocation for an object of type `T`. Requires that `sizeof(T)` is less th
 
 ```cpp
 template <typename T>
-void deallocate(T* ptr) noexcept
+void deallocate_as(T* ptr) noexcept
 ```
 
 Typed deallocation. Reclaims the `ptr` to the underlying linked list of `Chunk` without calling a destructor. For non-trivial types, consider calling `destroy<T>()` before deallocation.

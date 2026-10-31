@@ -183,7 +183,7 @@ T* PoolAllocator<S, C, B, Tr>::allocate_as() noexcept {
 
 template <size_t S, size_t C, BufferType B, Tracking Tr>
 template <typename T>
-void PoolAllocator<S, C, B, Tr>::deallocate(T* ptr) noexcept {
+void PoolAllocator<S, C, B, Tr>::deallocate_as(T* ptr) noexcept {
   deallocate(reinterpret_cast<std::byte*>(ptr));
 }
 

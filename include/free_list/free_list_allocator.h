@@ -60,7 +60,7 @@ class FreeListAllocator {
   [[nodiscard]] T* allocate_as() noexcept;
 
   template <typename T>
-  void deallocate(T* ptr) noexcept;
+  void deallocate_as(T* ptr) noexcept;
 
   template <typename T, typename... Args>
   [[nodiscard]] T* emplace(Args&&... args);

@@ -250,7 +250,7 @@ T* FreeListAllocator<S, F, B, Tr>::allocate_as() noexcept {
 
 template <size_t S, FitStrategy F, BufferType B, Tracking Tr>
 template <typename T>
-void FreeListAllocator<S, F, B, Tr>::deallocate(T* ptr) noexcept {
+void FreeListAllocator<S, F, B, Tr>::deallocate_as(T* ptr) noexcept {
   deallocate(reinterpret_cast<std::byte*>(ptr));
 }
 

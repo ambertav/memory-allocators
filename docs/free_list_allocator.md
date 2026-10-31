@@ -80,7 +80,7 @@ Typed allocation for an object of type `T`. Uses `alignof(T)` and `sizeof(T)` to
 
 ```cpp
 template <typename T>
-void deallocate(T* ptr) noexcept
+void deallocate_as(T* ptr) noexcept
 ```
 
 Typed deallocation. Reclaims the `ptr` to the free list without calling a destructor. For non-trivial types, consider calling `destroy<T>()` before deallocation.

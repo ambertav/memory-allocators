@@ -150,7 +150,7 @@ TYPED_TEST(BuddyAllocatorTypedTest, TypedDeallocateSucceeds) {
   int *ptr1{this->alloc->template allocate_as<int>()};
   ASSERT_NE(ptr1, nullptr);
 
-  this->alloc->template deallocate<int>(ptr1);
+  this->alloc->template deallocate_as<int>(ptr1);
 
   int *ptr2{this->alloc->template allocate_as<int>()};
   ASSERT_NE(ptr2, nullptr);

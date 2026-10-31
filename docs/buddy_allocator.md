@@ -81,7 +81,7 @@ Typed allocation for an object of type `T`. Aligns to `sizeof(T)`, rounded up to
 
 ```cpp
 template <typename T>
-void deallocate(T* ptr) noexcept
+void deallocate_as(T* ptr) noexcept
 ```
 
 Typed deallocation. Reclaims `ptr` without calling a destructor. For non-trivial types, consider calling `destroy<T>` before deallocation.
