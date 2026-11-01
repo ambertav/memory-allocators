@@ -190,8 +190,7 @@ template <size_t S, BufferType B, Tracking Tr>
 template <typename T>
 void LinearAllocator<S, B, Tr>::destroy(T* ptr) noexcept {
   // asymmetric, does not deallocate (only reset does)
-  if (ptr) {
-    std::destroy_at(ptr);
-  }
+  if (!ptr) return;
+  std::destroy_at(ptr);
 }
 }  // namespace allocator

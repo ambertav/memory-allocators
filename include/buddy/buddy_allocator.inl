@@ -264,10 +264,9 @@ T* BuddyAllocator<S, B, Tr>::emplace(Args&&... args) {
 template <size_t S, BufferType B, Tracking Tr>
 template <typename T>
 void BuddyAllocator<S, B, Tr>::destroy(T* ptr) noexcept {
-  // asymmetric, does not deallocate (only reset does)
-  if (ptr) {
-    std::destroy_at(ptr);
-  }
+  if (!ptr) return;
+  std::destroy_at(ptr);
+  deallocate_as<T>(ptr);
 }
 
 //////////////////////

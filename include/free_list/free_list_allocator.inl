@@ -272,10 +272,9 @@ T* FreeListAllocator<S, F, B, Tr>::emplace(Args&&... args) {
 template <size_t S, FitStrategy F, BufferType B, Tracking Tr>
 template <typename T>
 void FreeListAllocator<S, F, B, Tr>::destroy(T* ptr) noexcept {
-  // asymmetric, does not deallocate (only reset does)
-  if (ptr) {
-    std::destroy_at(ptr);
-  }
+  if (!ptr) return;
+  std::destroy_at(ptr);
+  deallocate_as<T>(ptr);
 }
 
 //////////////////////

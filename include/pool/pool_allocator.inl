@@ -203,10 +203,9 @@ T* PoolAllocator<S, C, B, Tr>::emplace(Args&&... args) {
 template <size_t S, size_t C, BufferType B, Tracking Tr>
 template <typename T>
 void PoolAllocator<S, C, B, Tr>::destroy(T* ptr) noexcept {
-  // asymmetric, does not deallocate (only reset does)
-  if (ptr) {
-    std::destroy_at(ptr);
-  }
+  if (!ptr) return;
+  std::destroy_at(ptr);
+  deallocate_as<T>(ptr);
 }
 
 //////////////////////
