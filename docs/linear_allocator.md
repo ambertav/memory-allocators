@@ -78,14 +78,14 @@ template <typename T, typename... Args>
 [[nodiscard]] T* emplace(Args&&... args)
 ```
 
-Allocates space for type `T` and constructs an object in-place using constructor arguments `args` and `std::construct_at()`. Returns pointer to the constructed object, or `nullptr` if allocation fails.
+Allocates space for type `T` and constructs an object in-place using constructor arguments `args` and `std::construct_at()`. Returns a typed pointer to the constructed object, or `nullptr` if allocation fails.
 
 ```cpp
 template <typename T> 
 void destroy(T* ptr) noexcept
 ```
 
-Calls destructor on object at `ptr` via `std::destroy_at()`. Only destroys the object and does **not** deallocate memory. Memory can only be reclaimed on `reset()`.
+Calls the destructor on object at `ptr` via `std::destroy_at()`. Only destroys the object and does **not** deallocate memory. Memory can only be reclaimed on `reset()`.
 
 ## Usage
 ```cpp

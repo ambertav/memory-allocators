@@ -77,28 +77,28 @@ template <typename T>
 [[nodiscard]] T* allocate_as() noexcept
 ```
 
-Typed allocation for an object of type `T`. Aligns to `sizeof(T)`, rounded up to the nearest power-of-two. Returns a typed pointer or `nullptr` on failure.
+Typed allocation for an object of type `T`. Aligns to `sizeof(T)`, rounded up to the nearest power-of-two. Returns a typed pointer without calling a constructor or `nullptr` on failure.
 
 ```cpp
 template <typename T>
 void deallocate_as(T* ptr) noexcept
 ```
 
-Typed deallocation. Reclaims `ptr` without calling a destructor. For non-trivial types, consider calling `destroy<T>` before deallocation.
+Typed deallocation for an object of type `T`. Reclaims `ptr` without calling the destructor. For typed pointers with a constructed object, call `destroy<T>()` instead. Do not call `deallocate_as<T>()` and `destroy<T>()` on the same pointer.
 
 ```cpp
 template <typename T, typename... Args>
 [[nodiscard]] T* emplace(Args&&... args)
 ```
 
-Allocates space for type `T` and constructs an object in-place using constructor arguments `args` and `std::construct_at()`. Returns a pointer to the constructed object, or `nullptr` if allocation fails.
+Allocates space for type `T` and constructs an object in-place using constructor arguments `args` and `std::construct_at()`. Returns a typed pointer to the constructed object, or `nullptr` if allocation fails.
 
 ```cpp
 template <typename T>
 void destroy(T* ptr) noexcept
 ```
 
-Calls destructor on the object at `ptr` via `std::destroy_at()`. Only destorys the object and does **not** deallocate memory. Memory can only be reclaimed via `deallocate<T>()` or `reset()`.
+Calls the destructor on the object at `ptr` via `std::destroy_at()` and reclaims the memory via `deallocate_as<T>()`. For typed pointers with no constructed object, call `deallocate_as<T>()` instead. Do not call `deallocate_as<T>()` and `destroy<T>()` on the same pointer.
 
 ## Usage
 
