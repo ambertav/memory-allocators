@@ -12,9 +12,7 @@ template <typename Allocator>
 class FreeListAllocatorTypedTest : public ::testing::Test {
  protected:
   void SetUp() override {
-    if constexpr (std::is_same_v<Allocator,
-                                 FreeListAllocator<1024, FitStrategy::FIRST,
-                                                   BufferType::EXTERNAL>>) {
+    if constexpr (Allocator::buffer_type == BufferType::EXTERNAL) {
       alloc = std::make_unique<Allocator>(buf);
     } else {
       alloc = std::make_unique<Allocator>();

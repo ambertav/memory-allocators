@@ -9,8 +9,7 @@ template <typename Allocator>
 class BuddyAllocatorTypedTest : public ::testing::Test {
  protected:
   void SetUp() override {
-    if constexpr (std::is_same_v<Allocator,
-                                 BuddyAllocator<1024, BufferType::EXTERNAL>>) {
+    if constexpr (Allocator::buffer_type == BufferType::EXTERNAL) {
       alloc = std::make_unique<Allocator>(buf);
     } else {
       alloc = std::make_unique<Allocator>();

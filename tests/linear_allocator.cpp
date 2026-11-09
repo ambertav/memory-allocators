@@ -12,8 +12,7 @@ template <typename Allocator>
 class LinearAllocatorTypedTest : public ::testing::Test {
  protected:
   void SetUp() override {
-    if constexpr (std::is_same_v<Allocator,
-                                 LinearAllocator<1024, BufferType::EXTERNAL>>) {
+    if constexpr (Allocator::buffer_type == BufferType::EXTERNAL) {
       alloc = std::make_unique<Allocator>(buf);
     } else {
       alloc = std::make_unique<Allocator>();
