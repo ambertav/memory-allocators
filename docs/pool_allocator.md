@@ -33,6 +33,16 @@ Creates a pool allocator with capacity `S` bytes and chunk_size `C` bytes. Behav
 - `BufferType::STACK`: Uses a stack-allocated buffer of `S` bytes
 - `BufferType::EXTERNAL`: Requires explicit buffer via `PoolAllocator(std::array<std::byte, S>&)`
 
+### Static Members
+
+The template parameters are re-exposed as `static constexpr` members, accessible at compile time.
+
+- `PoolAllocator::size`: total capacity in bytes
+- `PoolAllocator::chunk_size`: size of each chunk in bytes
+- `PoolAllocator::chunk_count`: number of chunks in pool
+- `PoolAllocator::buffer_type`: `HEAP`, `STACK`, or `EXTERNAL`
+- `PoolAllocator::tracking_mode`: `ENABLED` or `DISABLED`
+
 ### Memory Management
 
 ```cpp

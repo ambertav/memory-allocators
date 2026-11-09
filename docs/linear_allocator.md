@@ -29,6 +29,13 @@ Creates a linear allocator with capacity `S` bytes. Behavior depends on `BufferT
 - `BufferType::STACK`: Uses a stack-allocated buffer of `S` bytes
 - `BufferType::EXTERNAL`: Requires explicit buffer via `LinearAllocator(std::array<std::byte, S>&)`
 
+### Static Members
+
+The template parameters are re-exposed as `static constexpr` members, accessible at compile time.
+
+- `LinearAllocator::size`: total capacity in bytes
+- `LinearAllocator::buffer_type`: `HEAP`, `STACK`, or `EXTERNAL`
+- `LinearAllocator::tracking_mode`: `ENABLED` or `DISABLED`
 
 ### Memory Management
 ```cpp

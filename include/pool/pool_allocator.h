@@ -20,9 +20,11 @@ template <size_t S, size_t C, BufferType B = BufferType::HEAP,
           Tracking Tr = Tracking::DISABLED>
 class PoolAllocator {
  public:
-  static constexpr size_t chunk_size = C;
-  static constexpr size_t chunk_count = S / C;
-  static constexpr BufferType buffer_type = B;
+  static constexpr size_t size{S};
+  static constexpr size_t chunk_size{C};
+  static constexpr size_t chunk_count{S / C};
+  static constexpr BufferType buffer_type{B};
+  static constexpr Tracking tracking_mode{Tr};
 
   explicit PoolAllocator()
     requires(S > 0 && S % C == 0 && C >= sizeof(Chunk) && B == BufferType::HEAP)

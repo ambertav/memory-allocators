@@ -120,6 +120,30 @@ PoolAllocator()</code></pre>
                 </ul>
             </div>
 
+            <h4>Static Members</h4>
+            <div class="method">
+                <p>
+                    The template parameters are re-exposed as <code>static constexpr</code> members, accessible at compile time
+                </p>
+                <ul>
+                    <li>
+                        <code>PoolAllocator::size</code> : total capacity in bytes
+                    </li>
+                    <li>
+                        <code>PoolAllocator::chunk_size</code> : size of each chunk in bytes
+                    </li>
+                    <li>
+                        <code>PoolAllocator::chunk_count</code> : number of chunks in pool
+                    </li>
+                    <li>
+                        <code>PoolAllocator::buffer_type</code> : <code>HEAP</code>, <code>STACK</code>, or <code>EXTERNAL</code>
+                    </li>
+                    <li>
+                        <code>PoolAllocator::tracking_mode</code> : <code>ENABLED</code> or <code>DISABLED</code>
+                    </li>
+                </ul>
+            </div>
+
             <h4>Memory Management</h4>
             <div class="method">
                 <pre><code>[[nodiscard]] std::byte* allocate() noexcept</code></pre>

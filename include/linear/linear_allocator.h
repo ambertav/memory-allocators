@@ -15,7 +15,9 @@ template <size_t S, BufferType B = BufferType::HEAP,
           Tracking Tr = Tracking::DISABLED>
 class LinearAllocator {
  public:
-  static constexpr BufferType buffer_type = B;
+  static constexpr size_t size{S};
+  static constexpr BufferType buffer_type{B};
+  static constexpr Tracking tracking_mode{Tr};
 
   explicit LinearAllocator()
     requires(S > 0 && B == BufferType::HEAP);

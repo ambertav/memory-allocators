@@ -29,7 +29,11 @@ template <size_t S, FitStrategy F = FitStrategy::FIRST,
           BufferType B = BufferType::HEAP, Tracking Tr = Tracking::DISABLED>
 class FreeListAllocator {
  public:
-  static constexpr BufferType buffer_type = B;
+  static constexpr size_t size{S};
+  static constexpr FitStrategy fit_strategy{F};
+  static constexpr BufferType buffer_type{B};
+  static constexpr Tracking tracking_mode{Tr};
+
   explicit FreeListAllocator()
     requires(S > 0 && B == BufferType::HEAP);
   explicit FreeListAllocator()

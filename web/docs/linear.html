@@ -113,6 +113,24 @@ LinearAllocator()</code></pre>
                 </ul>
             </div>
 
+            <h4>Static Members</h4>
+            <div class="method">
+                <p>
+                    The template parameters are re-exposed as <code>static constexpr</code> members, accessible at compile time
+                </p>
+                <ul>
+                    <li>
+                        <code>LinearAllocator::size</code> : total capacity in bytes
+                    </li>
+                    <li>
+                        <code>LinearAllocator::buffer_type</code> : <code>HEAP</code>, <code>STACK</code>, or <code>EXTERNAL</code>
+                    </li>
+                    <li>
+                        <code>LinearAllocator::tracking_mode</code> : <code>ENABLED</code> or <code>DISABLED</code>
+                    </li>
+                </ul>
+            </div>
+
             <h4>Memory Management</h4>
             <div class="method">
                 <pre><code>[[nodiscard]] std::byte* allocate(size_t size, size_t alignment) noexcept</code></pre>
