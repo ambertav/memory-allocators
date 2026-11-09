@@ -1,9 +1,10 @@
 #include "pool/pool_allocator.h"
-#include "test_common.h"
 
 #include <gtest/gtest.h>
 
 #include <memory>
+
+#include "test_common.h"
 
 namespace allocator::tests {
 template <typename Allocator>
@@ -23,8 +24,8 @@ class PoolAllocatorTypedTest : public ::testing::Test {
   static constexpr size_t chunk_count{Allocator::chunk_count};
 
   // for buffertype::external allocator
-  static constexpr size_t buf_size{1024};
-  std::array<std::byte, buf_size> buf{};
+  static constexpr size_t size{chunk_size * chunk_count};
+  std::array<std::byte, size> buf{};
 };
 
 using AllocatorTypes = ::testing::Types<
@@ -53,7 +54,7 @@ TYPED_TEST(PoolAllocatorTypedTest, ReturnsNullptrWhenOutOfMemory) {
     ASSERT_NE(pointers[i], nullptr);
   }
 
-  EXPECT_EQ(this->alloc->get_used(), 1024);
+  EXPECT_EQ(this->alloc->get_used(), this->chunk_size * this->chunk_count);
 
   auto* ptr{this->alloc->allocate()};
   EXPECT_EQ(ptr, nullptr);
@@ -121,7 +122,8 @@ TYPED_TEST(PoolAllocatorTypedTest, DeallocateOutOfBoundsPointer) {
   auto* valid{this->alloc->allocate()};
   ASSERT_NE(valid, nullptr);
 
-  std::byte* invalid{valid + 100000};
+  uintptr_t address{reinterpret_cast<uintptr_t>(valid)};
+  auto* invalid{reinterpret_cast<std::byte*>(address + this->size)};
   EXPECT_DEATH(this->alloc->deallocate(invalid), "pointer is out of bounds");
 }
 

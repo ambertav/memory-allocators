@@ -71,7 +71,7 @@ void PoolAllocator<S, C, B, Tr>::deallocate(std::byte* ptr) noexcept {
   if (!ptr) {
     return;
   }
-  assert(ptr >= data && ptr <= data + capacity && "pointer is out of bounds");
+  assert(ptr >= data && ptr < data + capacity && "pointer is out of bounds");
 
   Chunk* chunk{reinterpret_cast<Chunk*>(ptr)};
   uintptr_t address{reinterpret_cast<uintptr_t>(ptr)};

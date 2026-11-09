@@ -101,7 +101,7 @@ void FreeListAllocator<S, F, B, Tr>::deallocate(std::byte* ptr) noexcept {
     return;
   }
 
-  assert(ptr >= data && ptr <= data + capacity && "pointer is out of bounds");
+  assert(ptr >= data && ptr < data + capacity && "pointer is out of bounds");
 
   size_t padding{*(reinterpret_cast<size_t*>(ptr - sizeof(size_t)))};
   Node* node{reinterpret_cast<Node*>(ptr - sizeof(Node) - padding)};

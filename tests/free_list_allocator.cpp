@@ -1,15 +1,16 @@
 #include "free_list/free_list_allocator.h"
-#include "test_common.h"
 
 #include <gtest/gtest.h>
 
 #include <memory>
 #include <span>
 
+#include "test_common.h"
+
 namespace allocator::tests {
 template <typename Allocator>
 class FreeListAllocatorTypedTest : public ::testing::Test {
-protected:
+ protected:
   void SetUp() override {
     if constexpr (std::is_same_v<Allocator,
                                  FreeListAllocator<1024, FitStrategy::FIRST,
@@ -23,8 +24,8 @@ protected:
   std::unique_ptr<Allocator> alloc{};
 
   // for buffertype::external allocator
-  static constexpr size_t buf_size{1024};
-  std::array<std::byte, buf_size> buf{};
+  static constexpr size_t size{Allocator::size};
+  std::array<std::byte, size> buf{};
 };
 
 // defaults to FitStrategy::FIRST if not specified
@@ -37,19 +38,19 @@ using AllocatorTypes = ::testing::Types<
 TYPED_TEST_SUITE(FreeListAllocatorTypedTest, AllocatorTypes);
 
 TYPED_TEST(FreeListAllocatorTypedTest, BasicAllocation) {
-  auto *ptr1{this->alloc->allocate(100, 8)};
+  auto* ptr1{this->alloc->allocate(100, 8)};
   ASSERT_NE(ptr1, nullptr);
 
-  auto *ptr2{this->alloc->allocate(100, 8)};
+  auto* ptr2{this->alloc->allocate(100, 8)};
   ASSERT_NE(ptr2, nullptr);
 
   EXPECT_NE(ptr1, ptr2);
 }
 
 TYPED_TEST(FreeListAllocatorTypedTest, AlignsCorrectly) {
-  auto *ptr1{this->alloc->allocate(13, 1)};
-  auto *ptr2{this->alloc->allocate(50, 8)};
-  auto *ptr3{this->alloc->allocate(100, 16)};
+  auto* ptr1{this->alloc->allocate(13, 1)};
+  auto* ptr2{this->alloc->allocate(50, 8)};
+  auto* ptr3{this->alloc->allocate(100, 16)};
 
   ASSERT_NE(ptr1, nullptr);
   ASSERT_NE(ptr2, nullptr);
@@ -61,27 +62,27 @@ TYPED_TEST(FreeListAllocatorTypedTest, AlignsCorrectly) {
 }
 
 TYPED_TEST(FreeListAllocatorTypedTest, ReturnsNullptrWhenOutOfMemory) {
-  auto *ptr{this->alloc->allocate(2000, 8)};
+  auto* ptr{this->alloc->allocate(2000, 8)};
   EXPECT_EQ(ptr, nullptr);
 }
 
 TYPED_TEST(FreeListAllocatorTypedTest, DeallocateAndReallocate) {
   size_t size{100};
-  auto *ptr1{this->alloc->allocate(size, 8)};
+  auto* ptr1{this->alloc->allocate(size, 8)};
   ASSERT_NE(ptr1, nullptr);
 
   this->alloc->deallocate(ptr1);
 
-  auto *ptr2{this->alloc->allocate(size, 8)};
+  auto* ptr2{this->alloc->allocate(size, 8)};
   ASSERT_NE(ptr2, nullptr);
 
-  EXPECT_EQ(ptr1, ptr2); // should point to the same memory
+  EXPECT_EQ(ptr1, ptr2);  // should point to the same memory
 }
 
 TYPED_TEST(FreeListAllocatorTypedTest, DeallocateOutOfOrderReuse) {
-  auto *ptr1{this->alloc->allocate(100, 8)};
-  auto *ptr2{this->alloc->allocate(100, 8)};
-  auto *ptr3{this->alloc->allocate(100, 8)};
+  auto* ptr1{this->alloc->allocate(100, 8)};
+  auto* ptr2{this->alloc->allocate(100, 8)};
+  auto* ptr3{this->alloc->allocate(100, 8)};
 
   ASSERT_NE(ptr1, nullptr);
   ASSERT_NE(ptr2, nullptr);
@@ -92,8 +93,8 @@ TYPED_TEST(FreeListAllocatorTypedTest, DeallocateOutOfOrderReuse) {
   this->alloc->deallocate(ptr1);
 
   // reallocate ptr4 and ptr5 in their place
-  auto *ptr4{this->alloc->allocate(100, 8)};
-  auto *ptr5{this->alloc->allocate(100, 8)};
+  auto* ptr4{this->alloc->allocate(100, 8)};
+  auto* ptr5{this->alloc->allocate(100, 8)};
 
   ASSERT_NE(ptr4, nullptr);
   ASSERT_NE(ptr5, nullptr);
@@ -105,7 +106,7 @@ TYPED_TEST(FreeListAllocatorTypedTest, DeallocateOutOfOrderReuse) {
 }
 
 TYPED_TEST(FreeListAllocatorTypedTest, DeallocateNullptr) {
-  auto *ptr1{this->alloc->allocate(100, 8)};
+  auto* ptr1{this->alloc->allocate(100, 8)};
   ASSERT_NE(ptr1, nullptr);
 
   size_t used_before_dealloc{this->alloc->get_used()};
@@ -120,23 +121,24 @@ TYPED_TEST(FreeListAllocatorTypedTest, DeallocateNullptr) {
   EXPECT_EQ(used_before_dealloc, used_after_dealloc);
   EXPECT_EQ(free_before_dealloc, free_after_dealloc);
 
-  auto *ptr2{this->alloc->allocate(200, 8)};
+  auto* ptr2{this->alloc->allocate(200, 8)};
   ASSERT_NE(ptr2, nullptr);
-  EXPECT_NE(ptr1, ptr2); // ptr1 is still valid
+  EXPECT_NE(ptr1, ptr2);  // ptr1 is still valid
 }
 
 TYPED_TEST(FreeListAllocatorTypedTest, DeallocateOutOfBoundsPointer) {
-  auto *valid{this->alloc->allocate(100, 8)};
+  auto* valid{this->alloc->allocate(100, 8)};
   ASSERT_NE(valid, nullptr);
 
-  std::byte *invalid{valid + 10000};
+  uintptr_t address{reinterpret_cast<uintptr_t>(valid)};
+  auto* invalid{reinterpret_cast<std::byte*>(address + this->size)};
   EXPECT_DEATH(this->alloc->deallocate(invalid), "pointer is out of bounds");
 }
 
 TYPED_TEST(FreeListAllocatorTypedTest, FragmentationAndCoalescing) {
-  auto *ptr1{this->alloc->allocate(300, 8)};
-  auto *ptr2{this->alloc->allocate(300, 8)};
-  auto *ptr3{this->alloc->allocate(300, 8)};
+  auto* ptr1{this->alloc->allocate(300, 8)};
+  auto* ptr2{this->alloc->allocate(300, 8)};
+  auto* ptr3{this->alloc->allocate(300, 8)};
 
   ASSERT_NE(ptr1, nullptr);
   ASSERT_NE(ptr2, nullptr);
@@ -146,20 +148,20 @@ TYPED_TEST(FreeListAllocatorTypedTest, FragmentationAndCoalescing) {
   this->alloc->deallocate(ptr2);
   this->alloc->deallocate(ptr3);
 
-  auto *large{this->alloc->allocate(850, 8)};
+  auto* large{this->alloc->allocate(850, 8)};
   EXPECT_NE(large, nullptr);
 }
 
 TYPED_TEST(FreeListAllocatorTypedTest, ResetsSuccessfully) {
-  auto *ptr1{this->alloc->allocate(500, 8)};
+  auto* ptr1{this->alloc->allocate(500, 8)};
   ASSERT_NE(ptr1, nullptr);
 
   this->alloc->reset();
 
-  auto *ptr2{this->alloc->allocate(500, 8)};
+  auto* ptr2{this->alloc->allocate(500, 8)};
   ASSERT_NE(ptr2, nullptr);
 
-  EXPECT_EQ(ptr1, ptr2); // should point to the same memory
+  EXPECT_EQ(ptr1, ptr2);  // should point to the same memory
 }
 
 TYPED_TEST(FreeListAllocatorTypedTest, InvalidAligmentReturnsNullptr) {
@@ -169,7 +171,7 @@ TYPED_TEST(FreeListAllocatorTypedTest, InvalidAligmentReturnsNullptr) {
 }
 
 TYPED_TEST(FreeListAllocatorTypedTest, TypedAllocateSucceeds) {
-  int *ptr{this->alloc->template allocate_as<int>()};
+  int* ptr{this->alloc->template allocate_as<int>()};
   ASSERT_NE(ptr, nullptr);
 
   EXPECT_EQ(reinterpret_cast<uintptr_t>(ptr) % alignof(int), 0u);
@@ -179,12 +181,12 @@ TYPED_TEST(FreeListAllocatorTypedTest, TypedAllocateSucceeds) {
 }
 
 TYPED_TEST(FreeListAllocatorTypedTest, TypedDeallocateSucceeds) {
-  int *ptr1{this->alloc->template allocate_as<int>()};
+  int* ptr1{this->alloc->template allocate_as<int>()};
   ASSERT_NE(ptr1, nullptr);
 
   this->alloc->template deallocate_as<int>(ptr1);
 
-  int *ptr2{this->alloc->template allocate_as<int>()};
+  int* ptr2{this->alloc->template allocate_as<int>()};
   ASSERT_NE(ptr2, nullptr);
 
   EXPECT_EQ(ptr1, ptr2);
@@ -193,7 +195,7 @@ TYPED_TEST(FreeListAllocatorTypedTest, TypedDeallocateSucceeds) {
 TYPED_TEST(FreeListAllocatorTypedTest, EmplaceAllocatesAndCreatesInPlace) {
   int a{15};
   double b{3.14};
-  Obj *obj{this->alloc->template emplace<Obj>(a, b)};
+  Obj* obj{this->alloc->template emplace<Obj>(a, b)};
   ASSERT_NE(obj, nullptr);
 
   // check construction
@@ -204,11 +206,11 @@ TYPED_TEST(FreeListAllocatorTypedTest, EmplaceAllocatesAndCreatesInPlace) {
 }
 
 TYPED_TEST(FreeListAllocatorTypedTest, DestroyCallsDestructor) {
-  TrackedObj::destructor_calls = 0; // assign to 0 at start of each typed test
+  TrackedObj::destructor_calls = 0;  // assign to 0 at start of each typed test
 
-  TrackedObj *obj1{this->alloc->template emplace<TrackedObj>(10)};
-  TrackedObj *obj2{this->alloc->template emplace<TrackedObj>(10)};
-  TrackedObj *obj3{this->alloc->template emplace<TrackedObj>(10)};
+  TrackedObj* obj1{this->alloc->template emplace<TrackedObj>(10)};
+  TrackedObj* obj2{this->alloc->template emplace<TrackedObj>(10)};
+  TrackedObj* obj3{this->alloc->template emplace<TrackedObj>(10)};
 
   ASSERT_NE(obj1, nullptr);
   ASSERT_NE(obj2, nullptr);
@@ -220,4 +222,4 @@ TYPED_TEST(FreeListAllocatorTypedTest, DestroyCallsDestructor) {
   EXPECT_EQ(TrackedObj::destructor_calls, 3);
 }
 
-} // namespace allocator::tests
+}  // namespace allocator::tests
