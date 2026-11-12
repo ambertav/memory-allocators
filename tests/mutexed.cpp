@@ -1,4 +1,4 @@
-#include "locked.h"
+#include "mutexed.h"
 
 #include <gtest/gtest.h>
 
@@ -18,13 +18,13 @@
 
 namespace allocator::tests {
 template <typename Allocator>
-class LockedThreadSafeAllocatorTypedTest : public ::testing::Test {
+class MutexedAllocatorTypedTest : public ::testing::Test {
  protected:
   void SetUp() override {
     if constexpr (Allocator::buffer_type == BufferType::EXTERNAL) {
-      alloc = std::make_unique<Locked<Allocator>>(buf);
+      alloc = std::make_unique<Mutexed<Allocator>>(buf);
     } else {
-      alloc = std::make_unique<Locked<Allocator>>();
+      alloc = std::make_unique<Mutexed<Allocator>>();
     }
   }
 
@@ -86,7 +86,7 @@ class LockedThreadSafeAllocatorTypedTest : public ::testing::Test {
 }
 };  // namespace allocator::tests
 
-std::unique_ptr<Locked<Allocator>> alloc{};
+std::unique_ptr<Mutexed<Allocator>> alloc{};
 
 // for buffertype::external allocator
 static constexpr size_t size{compute_size()};
@@ -108,9 +108,9 @@ using AllocatorTypes = ::testing::Types<
     FreeListAllocator<1024, FitStrategy::FIRST, BufferType::EXTERNAL>,
     BuddyAllocator<1024, BufferType::EXTERNAL>>;
 
-TYPED_TEST_SUITE(LockedThreadSafeAllocatorTypedTest, AllocatorTypes);
+TYPED_TEST_SUITE(MutexedAllocatorTypedTest, AllocatorTypes);
 
-TYPED_TEST(LockedThreadSafeAllocatorTypedTest, BasicAllocation) {
+TYPED_TEST(MutexedAllocatorTypedTest, BasicAllocation) {
   auto* ptr1{this->allocate_once()};
   ASSERT_NE(ptr1, nullptr);
 
@@ -120,7 +120,7 @@ TYPED_TEST(LockedThreadSafeAllocatorTypedTest, BasicAllocation) {
   EXPECT_NE(ptr1, ptr2);
 }
 
-TYPED_TEST(LockedThreadSafeAllocatorTypedTest, ReturnsNullptrWhenOutOfMemory) {
+TYPED_TEST(MutexedAllocatorTypedTest, ReturnsNullptrWhenOutOfMemory) {
   std::vector<std::byte*> pointers{};
 
   while (auto* ptr{this->allocate_once()}) {
@@ -132,7 +132,7 @@ TYPED_TEST(LockedThreadSafeAllocatorTypedTest, ReturnsNullptrWhenOutOfMemory) {
   EXPECT_GT(this->alloc->get_used(), size_t{0});
 }
 
-TYPED_TEST(LockedThreadSafeAllocatorTypedTest, ReleasesMemory) {
+TYPED_TEST(MutexedAllocatorTypedTest, ReleasesMemory) {
   auto* ptr1{this->allocate_once()};
   ASSERT_NE(ptr1, nullptr);
 
@@ -153,7 +153,7 @@ TYPED_TEST(LockedThreadSafeAllocatorTypedTest, ReleasesMemory) {
   }
 }
 
-TYPED_TEST(LockedThreadSafeAllocatorTypedTest, ResetsSuccessfully) {
+TYPED_TEST(MutexedAllocatorTypedTest, ResetsSuccessfully) {
   auto* ptr1{this->allocate_once()};
   ASSERT_NE(ptr1, nullptr);
 
@@ -165,7 +165,7 @@ TYPED_TEST(LockedThreadSafeAllocatorTypedTest, ResetsSuccessfully) {
   EXPECT_EQ(ptr1, ptr2);  // should point to the same memory
 }
 
-TYPED_TEST(LockedThreadSafeAllocatorTypedTest,
+TYPED_TEST(MutexedAllocatorTypedTest,
            Concurrent_NoDuplicateOrOverlap) {
   constexpr int k{16};
   std::vector<std::vector<std::byte*>> thread_results(k);
@@ -195,7 +195,7 @@ TYPED_TEST(LockedThreadSafeAllocatorTypedTest,
   EXPECT_LE(all_results.size(), this->size);
 }
 
-TYPED_TEST(LockedThreadSafeAllocatorTypedTest, Concurrent_Exhaustion) {
+TYPED_TEST(MutexedAllocatorTypedTest, Concurrent_Exhaustion) {
   const size_t capacity{this->measure_capacity()};
 
   constexpr int k{16};
@@ -215,7 +215,7 @@ TYPED_TEST(LockedThreadSafeAllocatorTypedTest, Concurrent_Exhaustion) {
   EXPECT_EQ(all_results.size(), capacity);
 }
 
-TYPED_TEST(LockedThreadSafeAllocatorTypedTest,
+TYPED_TEST(MutexedAllocatorTypedTest,
            Concurrent_ReadingVersusWritingMetrics) {
   constexpr int iterations{500};
 
@@ -250,7 +250,7 @@ TYPED_TEST(LockedThreadSafeAllocatorTypedTest,
   EXPECT_EQ(violations.load(), 0);
 }
 
-TYPED_TEST(LockedThreadSafeAllocatorTypedTest, Concurrent_ResetAfterJoin) {
+TYPED_TEST(MutexedAllocatorTypedTest, Concurrent_ResetAfterJoin) {
   const size_t capacity{this->measure_capacity()};
 
   constexpr int k{16};

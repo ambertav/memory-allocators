@@ -6,17 +6,17 @@
 
 namespace allocator {
 template <typename Allocator>
-class Locked {
+class Mutexed {
  public:
   template <typename... Args>
-  explicit Locked(Args&&... args);
-  ~Locked() noexcept = default;
+  explicit Mutexed(Args&&... args);
+  ~Mutexed() noexcept = default;
 
-  Locked(const Locked&) = delete;
-  Locked& operator=(const Locked&) = delete;
+  Mutexed(const Mutexed&) = delete;
+  Mutexed& operator=(const Mutexed&) = delete;
 
-  Locked(Locked&&) = delete;
-  Locked& operator=(Locked&&) = delete;
+  Mutexed(Mutexed&&) = delete;
+  Mutexed& operator=(Mutexed&&) = delete;
 
   template <typename... Args>
   [[nodiscard]] std::byte* allocate(Args&&... args) noexcept;
@@ -61,4 +61,4 @@ class Locked {
 };
 }  // namespace allocator
 
-#include "locked.inl"
+#include "mutexed.inl"
