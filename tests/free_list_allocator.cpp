@@ -60,7 +60,7 @@ TYPED_TEST(FreeListAllocatorTypedTest, AlignsCorrectly) {
 }
 
 TYPED_TEST(FreeListAllocatorTypedTest, ReturnsNullptrWhenOutOfMemory) {
-  auto* ptr{this->alloc->allocate(2000, 8)};
+  auto* ptr{this->alloc->allocate(this->size + 1, 8)};
   EXPECT_EQ(ptr, nullptr);
 }
 
